@@ -17,6 +17,7 @@ func main() {
 	http.HandleFunc("/tables", tables)
 	http.HandleFunc("/person", person)
 	http.HandleFunc("/party", party)
+	http.HandleFunc("/bar", bar)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -33,7 +34,6 @@ func tables(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(data)
-	//w.Write([]byte(data))
 }
 
 func person(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +50,6 @@ func person(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(person)
-	//w.Write([]byte(person.Name))
 }
 
 func party(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +66,22 @@ func party(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(party)
-	//w.Write([]byte(person.Name))
+}
+
+func bar(w http.ResponseWriter, r *http.Request) {
+	data, err := getBar()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var bar BarData
+	jsonErr := dynamodbattribute.UnmarshalMap(data, &bar)
+	if jsonErr != nil {
+		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(bar)
 }
 
 func getTables() (string, error) {
@@ -130,6 +144,29 @@ func getParty() (map[string]*dynamodb.AttributeValue, error) {
 	return getItemOutput.Item, err2
 }
 
+func getBar() (map[string]*dynamodb.AttributeValue, error) {
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config *aws.Config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		fmt.Println("err")
+	}
+	var svc *dynamodb.DynamoDB = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	var getItemInput = dynamodb.GetItemInput{}
+	getItemInput.SetTableName("Bar")
+	var attributeValue = dynamodb.AttributeValue{}
+	attributeValue.SetN("1")
+	getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"barID": &attributeValue})
+	getItemOutput, err2 := getter.DynamoDB.GetItem(&getItemInput)
+	return getItemOutput.Item, err2
+}
+
 type PersonData struct {
 		BlackoutList []string `json:"blackoutList"`
 		FacebookID string 		`json:"facebookID"`
@@ -173,4 +210,30 @@ type Invitee struct {
 	Name				string	`json:"name"`
 	Rating			string	`json:"rating"`
 	Status			string 	`json:"status"`
+}
+
+type BarData struct {
+	AddressLine1 				string			`json:"addressLine1"`
+	AddressLine2				string			`json:"addressLine2"`
+	Attendees						[]Attendee	`json:"attendees"`
+	BarID								uint64			`json:"barID"`
+	City								string			`json:"city"`
+	ClosingTime					string			`json:"closingTime"`
+	Country							string			`json:"country"`
+	Description					string			`json:"description"`
+	Hosts								[]Host			`json:"hosts"`
+	LastCall						string			`json:"lastCall"`
+	Latitude      			float64 		`json:"latitude"`
+	Longitude     			float64 		`json:"longitude"`
+	Name								string			`json:"name"`
+	StateProvinceRegion string 			`json:"stateProvinceRegion"`
+	ZipCode							uint32			`json:"zipCode"`
+}
+
+type Attendee struct {
+	AtBar 			bool 		`json:"atBar"`
+	FacebookID	string	`json:"facebookID"`
+	IsMale			bool		`json:"isMale"`
+	Name				string	`json:"name"`
+	Rating			string	`json:"rating"`
 }
