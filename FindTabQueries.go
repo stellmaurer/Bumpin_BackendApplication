@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -15,9 +16,8 @@ import (
 // Find all parties I'm invited to
 func myParties(w http.ResponseWriter, r *http.Request) {
 	// http://example.com/page?parameter=value&also=another
-	//params := r.URL.Query().Get("partyID")
-	//fmt.Println(params)
-	data, err := findMyParties()
+	params := strings.Split(r.URL.Query().Get("partyID"), ",")
+	data, err := findMyParties(params)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -33,7 +33,7 @@ func myParties(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(parties)
 }
 
-func findMyParties() (map[string][]map[string]*dynamodb.AttributeValue, error) {
+func findMyParties(params []string) (map[string][]map[string]*dynamodb.AttributeValue, error) {
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -48,16 +48,23 @@ func findMyParties() (map[string][]map[string]*dynamodb.AttributeValue, error) {
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
 	// Finally
 	var batchGetItemInput = dynamodb.BatchGetItemInput{}
-	//getItemInput.SetTableName("Party")
-	attributesAndValues := make([]map[string]*dynamodb.AttributeValue, 2)
-	var attributeValue1 = dynamodb.AttributeValue{}
-	var attributeValue2 = dynamodb.AttributeValue{}
-	attributeValue1.SetN("1")
-	attributeValue2.SetN("2")
-	attributesAndValues[0] = make(map[string]*dynamodb.AttributeValue)
-	attributesAndValues[1] = make(map[string]*dynamodb.AttributeValue)
-	attributesAndValues[0]["partyID"] = &attributeValue1
-	attributesAndValues[1]["partyID"] = &attributeValue2
+	attributesAndValues := make([]map[string]*dynamodb.AttributeValue, len(params))
+	for i := 0; i < len(params); i++ {
+		var attributeValue = dynamodb.AttributeValue{}
+		attributeValue.SetN(params[i])
+		attributesAndValues[i] = make(map[string]*dynamodb.AttributeValue)
+		attributesAndValues[i]["partyID"] = &attributeValue
+	}
+	/*
+		var attributeValue1 = dynamodb.AttributeValue{}
+		var attributeValue2 = dynamodb.AttributeValue{}
+		attributeValue1.SetN("1")
+		attributeValue2.SetN("2")
+		attributesAndValues[0] = make(map[string]*dynamodb.AttributeValue)
+		attributesAndValues[1] = make(map[string]*dynamodb.AttributeValue)
+		attributesAndValues[0]["partyID"] = &attributeValue1
+		attributesAndValues[1]["partyID"] = &attributeValue2
+	*/
 
 	var keysAndAttributes dynamodb.KeysAndAttributes
 	keysAndAttributes.SetKeys(attributesAndValues)
