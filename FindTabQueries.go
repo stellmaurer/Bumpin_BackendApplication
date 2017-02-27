@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -22,7 +24,7 @@ func myParties(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	parties := make([]PartyData, 1)
+	parties := make([]PartyData, len(params))
 	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data["Party"], &parties)
 
 	if jsonErr != nil {
@@ -55,16 +57,6 @@ func findMyParties(params []string) (map[string][]map[string]*dynamodb.Attribute
 		attributesAndValues[i] = make(map[string]*dynamodb.AttributeValue)
 		attributesAndValues[i]["partyID"] = &attributeValue
 	}
-	/*
-		var attributeValue1 = dynamodb.AttributeValue{}
-		var attributeValue2 = dynamodb.AttributeValue{}
-		attributeValue1.SetN("1")
-		attributeValue2.SetN("2")
-		attributesAndValues[0] = make(map[string]*dynamodb.AttributeValue)
-		attributesAndValues[1] = make(map[string]*dynamodb.AttributeValue)
-		attributesAndValues[0]["partyID"] = &attributeValue1
-		attributesAndValues[1]["partyID"] = &attributeValue2
-	*/
 
 	var keysAndAttributes dynamodb.KeysAndAttributes
 	keysAndAttributes.SetKeys(attributesAndValues)
@@ -77,13 +69,75 @@ func findMyParties(params []string) (map[string][]map[string]*dynamodb.Attribute
 	return batchGetItemOutput.Responses, err2
 }
 
-/*
-{
-    "TableName" : {
-      keys: [
-        {
-          "AttributeName" => "value", # value <Hash,Array,String,Numeric,Boolean,IO,Set,nil>
-        },
-      ],
-    }
-}*/
+// Find all bars that I'm close to
+func barsCloseToMe(w http.ResponseWriter, r *http.Request) {
+	latitude, latitudeErr := strconv.ParseFloat(r.URL.Query().Get("latitude"), 64)
+	longitude, longitudeErr := strconv.ParseFloat(r.URL.Query().Get("longitude"), 64)
+
+	if latitudeErr != nil {
+		http.Error(w, "HTTP get request latitude parameter messed up: "+latitudeErr.Error(), http.StatusInternalServerError)
+		return
+	}
+	if longitudeErr != nil {
+		http.Error(w, "HTTP get request longitude parameter messed up: "+longitudeErr.Error(), http.StatusInternalServerError)
+		return
+	}
+	data, err := findBarsCloseToMe(latitude, longitude)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	bars := make([]BarData, len(data))
+	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &bars)
+
+	if jsonErr != nil {
+		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(bars)
+}
+
+func findBarsCloseToMe(latitude float64, longitude float64) ([]map[string]*dynamodb.AttributeValue, error) {
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		fmt.Println("err")
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	var scanItemsInput = dynamodb.ScanInput{}
+	scanItemsInput.SetTableName("Bar")
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	// approximately getting bars within a 100 mile radius
+	// # of degrees / 100 miles = 1.45 degrees of latitude
+	degreesOfLatitudeWhichEqual100Miles := 1.45
+	// # of degrees / 100 miles = (1 degree of longitude / (69.1703 * COS(Latitude * 0.0174533)) ) * 100 miles
+	degreesOfLongitudeWhichEqual100Miles := (1 / (69.1703 * math.Cos(latitude*0.0174533))) * 100
+	latitudeSouth := latitude - degreesOfLatitudeWhichEqual100Miles
+	latitudeNorth := latitude + degreesOfLatitudeWhichEqual100Miles
+	longitudeEast := longitude - degreesOfLongitudeWhichEqual100Miles
+	longitudeWest := longitude + degreesOfLongitudeWhichEqual100Miles
+	latitudeSouthAttributeValue := dynamodb.AttributeValue{}
+	latitudeNorthAttributeValue := dynamodb.AttributeValue{}
+	longitudeEastAttributeValue := dynamodb.AttributeValue{}
+	longitudeWestAttributeValue := dynamodb.AttributeValue{}
+	latitudeSouthAttributeValue.SetN(strconv.FormatFloat(latitudeSouth, 'f', -1, 64))
+	latitudeNorthAttributeValue.SetN(strconv.FormatFloat(latitudeNorth, 'f', -1, 64))
+	longitudeEastAttributeValue.SetN(strconv.FormatFloat(longitudeEast, 'f', -1, 64))
+	longitudeWestAttributeValue.SetN(strconv.FormatFloat(longitudeWest, 'f', -1, 64))
+	expressionValuePlaceholders[":latitudeSouth"] = &latitudeSouthAttributeValue
+	expressionValuePlaceholders[":latitudeNorth"] = &latitudeNorthAttributeValue
+	expressionValuePlaceholders[":longitudeEast"] = &longitudeEastAttributeValue
+	expressionValuePlaceholders[":longitudeWest"] = &longitudeWestAttributeValue
+	scanItemsInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	scanItemsInput.SetFilterExpression("(latitude BETWEEN :latitudeSouth AND :latitudeNorth) AND (longitude BETWEEN :longitudeEast AND :longitudeWest)")
+	scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
+	return scanItemsOutput.Items, err2
+}

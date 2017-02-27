@@ -11,5 +11,6 @@ func main() {
 	http.HandleFunc("/party", party)
 	http.HandleFunc("/bar", bar)
 	http.HandleFunc("/myParties", myParties)
+	http.HandleFunc("/barsCloseToMe", barsCloseToMe)
 	http.ListenAndServe(":8080", nil)
 }
