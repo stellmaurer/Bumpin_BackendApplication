@@ -171,66 +171,65 @@ type PersonData struct {
 
 // PartyData : A party from the database in json format
 type PartyData struct {
-	AddressLine1        string    `json:"addressLine1"`
-	AddressLine2        string    `json:"addressLine2"`
-	City                string    `json:"city"`
-	Country             string    `json:"country"`
-	Details             string    `json:"details"`
-	DrinksProvided      bool      `json:"drinksProvided"`
-	EndTime             string    `json:"endTime"`
-	FeeForDrinks        bool      `json:"feeForDrinks"`
-	Hosts               []Host    `json:"hosts"`
-	Invitees            []Invitee `json:"invitees"`
-	Latitude            float64   `json:"latitude"`
-	Longitude           float64   `json:"longitude"`
-	PartyID             uint64    `json:"partyID"`
-	StartTime           string    `json:"startTime"`
-	StateProvinceRegion string    `json:"stateProvinceRegion"`
-	Title               string    `json:"title"`
-	ZipCode             uint32    `json:"zipCode"`
+	AddressLine1        string              `json:"addressLine1"`
+	AddressLine2        string              `json:"addressLine2"`
+	City                string              `json:"city"`
+	Country             string              `json:"country"`
+	Details             string              `json:"details"`
+	DrinksProvided      bool                `json:"drinksProvided"`
+	EndTime             string              `json:"endTime"`
+	FeeForDrinks        bool                `json:"feeForDrinks"`
+	Hosts               map[string]*Host    `json:"hosts"`
+	Invitees            map[string]*Invitee `json:"invitees"`
+	Latitude            float64             `json:"latitude"`
+	Longitude           float64             `json:"longitude"`
+	PartyID             uint64              `json:"partyID"`
+	StartTime           string              `json:"startTime"`
+	StateProvinceRegion string              `json:"stateProvinceRegion"`
+	Title               string              `json:"title"`
+	ZipCode             uint32              `json:"zipCode"`
 }
 
 // Host : A host of a party from the database in json format
 type Host struct {
-	FacebookID string `json:"facebookID"`
 	IsMainHost bool   `json:"isMainHost"`
 	Name       string `json:"name"`
 }
 
 // Invitee : An invitee to a party from the database in json format
 type Invitee struct {
-	AtParty    bool   `json:"atParty"`
-	FacebookID string `json:"facebookID"`
-	IsMale     bool   `json:"isMale"`
-	Name       string `json:"name"`
-	Rating     string `json:"rating"`
-	Status     string `json:"status"`
+	AtParty       bool   `json:"atParty"`
+	IsMale        bool   `json:"isMale"`
+	Name          string `json:"name"`
+	Rating        string `json:"rating"`
+	TimeLastRated string `json:"timeLastRated"`
+	Status        string `json:"status"`
 }
 
 // BarData : A bar from the database in json format
 type BarData struct {
-	AddressLine1        string     `json:"addressLine1"`
-	AddressLine2        string     `json:"addressLine2"`
-	Attendees           []Attendee `json:"attendees"`
-	BarID               uint64     `json:"barID"`
-	City                string     `json:"city"`
-	ClosingTime         string     `json:"closingTime"`
-	Country             string     `json:"country"`
-	Description         string     `json:"description"`
-	Hosts               []Host     `json:"hosts"`
-	LastCall            string     `json:"lastCall"`
-	Latitude            float64    `json:"latitude"`
-	Longitude           float64    `json:"longitude"`
-	Name                string     `json:"name"`
-	StateProvinceRegion string     `json:"stateProvinceRegion"`
-	ZipCode             uint32     `json:"zipCode"`
+	AddressLine1        string               `json:"addressLine1"`
+	AddressLine2        string               `json:"addressLine2"`
+	Attendees           map[string]*Attendee `json:"attendees"`
+	BarID               uint64               `json:"barID"`
+	City                string               `json:"city"`
+	ClosingTime         string               `json:"closingTime"`
+	Country             string               `json:"country"`
+	Description         string               `json:"description"`
+	Hosts               map[string]*Host     `json:"hosts"`
+	LastCall            string               `json:"lastCall"`
+	Latitude            float64              `json:"latitude"`
+	Longitude           float64              `json:"longitude"`
+	Name                string               `json:"name"`
+	StateProvinceRegion string               `json:"stateProvinceRegion"`
+	ZipCode             uint32               `json:"zipCode"`
 }
 
 // Attendee : An attendee to a bar in the database in json format
 type Attendee struct {
-	AtBar      bool   `json:"atBar"`
-	FacebookID string `json:"facebookID"`
-	IsMale     bool   `json:"isMale"`
-	Name       string `json:"name"`
-	Rating     string `json:"rating"`
+	AtBar         bool   `json:"atBar"`
+	IsMale        bool   `json:"isMale"`
+	Name          string `json:"name"`
+	Rating        string `json:"rating"`
+	TimeLastRated string `json:"timeLastRated"`
 }

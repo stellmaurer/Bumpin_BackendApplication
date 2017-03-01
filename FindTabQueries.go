@@ -17,7 +17,6 @@ import (
 
 // Find all parties I'm invited to
 func myParties(w http.ResponseWriter, r *http.Request) {
-	// http://example.com/page?parameter=value&also=another
 	params := strings.Split(r.URL.Query().Get("partyID"), ",")
 	data, err := findMyParties(params)
 	if err != nil {
@@ -140,4 +139,67 @@ func findBarsCloseToMe(latitude float64, longitude float64) ([]map[string]*dynam
 	scanItemsInput.SetFilterExpression("(latitude BETWEEN :latitudeSouth AND :latitudeNorth) AND (longitude BETWEEN :longitudeEast AND :longitudeWest)")
 	scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
 	return scanItemsOutput.Items, err2
+}
+
+// Change my attendance status to a party
+func changeAttendanceStatusToParty(w http.ResponseWriter, r *http.Request) {
+	partyID := r.URL.Query().Get("partyID")
+	facebookID := r.URL.Query().Get("facebookID")
+	status := r.URL.Query().Get("status")
+
+	data, err := changeAttendanceStatusToPartyHelper(partyID, facebookID, status)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var party = PartyData{}
+	jsonErr := dynamodbattribute.UnmarshalMap(data, &party)
+
+	if jsonErr != nil {
+		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(party)
+}
+
+func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, status string) (map[string]*dynamodb.AttributeValue, error) {
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		fmt.Println("err")
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	invitees := "invitees"
+	stringStatus := "status"
+	expressionAttributeNames["#i"] = &invitees
+	expressionAttributeNames["#f"] = &facebookID
+	expressionAttributeNames["#s"] = &stringStatus
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var statusAttributeValue = dynamodb.AttributeValue{}
+	statusAttributeValue.SetS(status)
+	expressionValuePlaceholders[":status"] = &statusAttributeValue
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetN(partyID)
+	keyMap["partyID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Party")
+	updateExpression := "SET #i.#f.#s=:status"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	updateItemOutput, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	return updateItemOutput.Attributes, err2
 }
