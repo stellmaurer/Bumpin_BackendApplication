@@ -21,5 +21,8 @@ func main() {
 	http.HandleFunc("/barsCloseToMe", barsCloseToMe)
 	// curl "http://localhost:8080/changeAttendanceStatusToParty?partyID=1&facebookID=3303&status=M"
 	http.HandleFunc("/changeAttendanceStatusToParty", changeAttendanceStatusToParty)
+	// curl "http://localhost:8080/changeAttendanceStatusToBar?barID=1&facebookID=3349506688&atBar=true&isMale=true&name=Steve&rating=N&status=G&timeLastRated=blah"
+	http.HandleFunc("/changeAttendanceStatusToBar", changeAttendanceStatusToBar)
+
 	http.ListenAndServe(":8080", nil)
 }
