@@ -220,7 +220,7 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isMaleConvErr != nil {
-		http.Error(w, "Parameter issue: "+atBarConvErr.Error(), http.StatusInternalServerError)
+		http.Error(w, "Parameter issue: "+isMaleConvErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -298,4 +298,146 @@ func changeAttendanceStatusToBarHelper(barID string, facebookID string, atBar bo
 
 	updateItemOutput, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
 	return updateItemOutput.Attributes, err2
+}
+
+// As an invitee to a party, invite another friend to
+//    the same party if you have invitations left.
+func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
+	partyID := r.URL.Query().Get("partyID")
+	myFacebookID := r.URL.Query().Get("myFacebookID")
+	friendFacebookID := r.URL.Query().Get("friendFacebookID")
+	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
+	name := r.URL.Query().Get("name")
+
+	if isMaleConvErr != nil {
+		http.Error(w, "Parameter issue: "+isMaleConvErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data, err := inviteFriendToPartyHelper(partyID, myFacebookID, friendFacebookID, isMale, name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var party = PartyData{}
+	jsonErr := dynamodbattribute.UnmarshalMap(data, &party)
+
+	if jsonErr != nil {
+		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(party)
+}
+
+func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebookID string, isMale bool, name string) (map[string]*dynamodb.AttributeValue, error) {
+	atParty := false
+	numberOfInvitationsLeft := "0"
+	rating := "N"
+	status := "I"
+	// constant in the past to make sure the invitee
+	//     can rate the party right away
+	timeLastRated := "01/01/2001 00:00:00"
+
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		fmt.Println("err")
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	invitees := "invitees"
+	numberOfInvitationsLeftString := "numberOfInvitationsLeft"
+	expressionAttributeNames["#i"] = &invitees
+	expressionAttributeNames["#m"] = &myFacebookID
+	expressionAttributeNames["#f"] = &friendFacebookID
+	expressionAttributeNames["#n"] = &numberOfInvitationsLeftString
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+
+	inviteeMap := make(map[string]*dynamodb.AttributeValue)
+	var invitee = dynamodb.AttributeValue{}
+	var atPartyAttribute = dynamodb.AttributeValue{}
+	var isMaleAttribute = dynamodb.AttributeValue{}
+	var nameAttribute = dynamodb.AttributeValue{}
+	var numberOfInvitationsLeftAttribute = dynamodb.AttributeValue{}
+	var ratingAttribute = dynamodb.AttributeValue{}
+	var statusAttribute = dynamodb.AttributeValue{}
+	var timeLastRatedAttribute = dynamodb.AttributeValue{}
+	atPartyAttribute.SetBOOL(atParty)
+	isMaleAttribute.SetBOOL(isMale)
+	nameAttribute.SetS(name)
+	numberOfInvitationsLeftAttribute.SetN(numberOfInvitationsLeft)
+	ratingAttribute.SetS(rating)
+	statusAttribute.SetS(status)
+	timeLastRatedAttribute.SetS(timeLastRated)
+	inviteeMap["atParty"] = &atPartyAttribute
+	inviteeMap["isMale"] = &isMaleAttribute
+	inviteeMap["name"] = &nameAttribute
+	inviteeMap["numberOfInvitationsLeft"] = &numberOfInvitationsLeftAttribute
+	inviteeMap["rating"] = &ratingAttribute
+	inviteeMap["status"] = &statusAttribute
+	inviteeMap["timeLastRated"] = &timeLastRatedAttribute
+	invitee.SetM(inviteeMap)
+	expressionValuePlaceholders[":invitee"] = &invitee
+
+	var decrementAttribute = dynamodb.AttributeValue{}
+	decrementAttribute.SetN("-1")
+	expressionValuePlaceholders[":decrement"] = &decrementAttribute
+	var oneAttribute = dynamodb.AttributeValue{}
+	oneAttribute.SetN("1")
+	expressionValuePlaceholders[":one"] = &oneAttribute
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetN(partyID)
+	keyMap["partyID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetConditionExpression("attribute_not_exists(#i.#f) AND (#i.#m.#n >= :one)")
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Party")
+	updateExpression := "SET #i.#f=:invitee ADD #i.#m.#n :decrement"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	updateItemOutput1, updateItemOutputErr1 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	if updateItemOutputErr1 != nil {
+		return updateItemOutput1.Attributes, updateItemOutputErr1
+	}
+
+	// Now we need to update the friend's information to let them
+	//     know that they are invited to this party.
+	expressionAttributeNames2 := make(map[string]*string)
+	invitedTo := "invitedTo"
+	expressionAttributeNames2["#i"] = &invitedTo
+	expressionValuePlaceholders2 := make(map[string]*dynamodb.AttributeValue)
+	var partyIDAttribute = dynamodb.AttributeValue{}
+	partyIDNumberSet := make([]*string, 1)
+	partyIDNumberSet[0] = &partyID
+	partyIDAttribute.SetNS(partyIDNumberSet)
+	expressionValuePlaceholders2[":partyID"] = &partyIDAttribute
+
+	keyMap2 := make(map[string]*dynamodb.AttributeValue)
+	var key2 = dynamodb.AttributeValue{}
+	key2.SetS(friendFacebookID)
+	keyMap2["facebookID"] = &key2
+
+	var updateItemInput2 = dynamodb.UpdateItemInput{}
+	updateItemInput2.SetExpressionAttributeNames(expressionAttributeNames2)
+	updateItemInput2.SetExpressionAttributeValues(expressionValuePlaceholders2)
+	updateItemInput2.SetKey(keyMap2)
+	updateItemInput2.SetTableName("Person")
+	updateExpression2 := "ADD #i :partyID"
+	updateItemInput2.UpdateExpression = &updateExpression2
+	updateItemOutput2, updateItemOutputErr2 := getter.DynamoDB.UpdateItem(&updateItemInput2)
+
+	return updateItemOutput2.Attributes, updateItemOutputErr2
 }
