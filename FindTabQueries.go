@@ -178,7 +178,7 @@ func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, stat
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
 	// Finally
 	expressionAttributeNames := make(map[string]*string)
-	invitees := "invitees"
+	var invitees = "invitees"
 	stringStatus := "status"
 	expressionAttributeNames["#i"] = &invitees
 	expressionAttributeNames["#f"] = &facebookID
@@ -208,23 +208,18 @@ func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, stat
 func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 	barID := r.URL.Query().Get("barID")
 	facebookID := r.URL.Query().Get("facebookID")
-	atBar, atBarConvErr := strconv.ParseBool(r.URL.Query().Get("atBar"))
 	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
 	name := r.URL.Query().Get("name")
 	rating := r.URL.Query().Get("rating")
 	status := r.URL.Query().Get("status")
 	timeLastRated := r.URL.Query().Get("timeLastRated")
 
-	if atBarConvErr != nil {
-		http.Error(w, "Parameter issue: "+atBarConvErr.Error(), http.StatusInternalServerError)
-		return
-	}
 	if isMaleConvErr != nil {
 		http.Error(w, "Parameter issue: "+isMaleConvErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	data, err := changeAttendanceStatusToBarHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated)
+	data, err := changeAttendanceStatusToBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -240,7 +235,7 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(bar)
 }
 
-func changeAttendanceStatusToBarHelper(barID string, facebookID string, atBar bool, isMale bool, name string, rating string, status string, timeLastRated string) (map[string]*dynamodb.AttributeValue, error) {
+func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale bool, name string, rating string, status string, timeLastRated string) (map[string]*dynamodb.AttributeValue, error) {
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -262,19 +257,16 @@ func changeAttendanceStatusToBarHelper(barID string, facebookID string, atBar bo
 
 	attendeeMap := make(map[string]*dynamodb.AttributeValue)
 	var attendee = dynamodb.AttributeValue{}
-	var atBarAttribute = dynamodb.AttributeValue{}
 	var isMaleAttribute = dynamodb.AttributeValue{}
 	var nameAttribute = dynamodb.AttributeValue{}
 	var ratingAttribute = dynamodb.AttributeValue{}
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
-	atBarAttribute.SetBOOL(atBar)
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
 	ratingAttribute.SetS(rating)
 	statusAttribute.SetS(status)
 	timeLastRatedAttribute.SetS(timeLastRated)
-	attendeeMap["atBar"] = &atBarAttribute
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameAttribute
 	attendeeMap["rating"] = &ratingAttribute
@@ -331,7 +323,6 @@ func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
 }
 
 func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebookID string, isMale bool, name string) (map[string]*dynamodb.AttributeValue, error) {
-	atParty := false
 	numberOfInvitationsLeft := "0"
 	rating := "N"
 	status := "I"
@@ -353,7 +344,7 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
 	// Finally
 	expressionAttributeNames := make(map[string]*string)
-	invitees := "invitees"
+	var invitees = "invitees"
 	numberOfInvitationsLeftString := "numberOfInvitationsLeft"
 	expressionAttributeNames["#i"] = &invitees
 	expressionAttributeNames["#m"] = &myFacebookID
@@ -363,21 +354,18 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 
 	inviteeMap := make(map[string]*dynamodb.AttributeValue)
 	var invitee = dynamodb.AttributeValue{}
-	var atPartyAttribute = dynamodb.AttributeValue{}
 	var isMaleAttribute = dynamodb.AttributeValue{}
 	var nameAttribute = dynamodb.AttributeValue{}
 	var numberOfInvitationsLeftAttribute = dynamodb.AttributeValue{}
 	var ratingAttribute = dynamodb.AttributeValue{}
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
-	atPartyAttribute.SetBOOL(atParty)
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
 	numberOfInvitationsLeftAttribute.SetN(numberOfInvitationsLeft)
 	ratingAttribute.SetS(rating)
 	statusAttribute.SetS(status)
 	timeLastRatedAttribute.SetS(timeLastRated)
-	inviteeMap["atParty"] = &atPartyAttribute
 	inviteeMap["isMale"] = &isMaleAttribute
 	inviteeMap["name"] = &nameAttribute
 	inviteeMap["numberOfInvitationsLeft"] = &numberOfInvitationsLeftAttribute

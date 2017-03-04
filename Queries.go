@@ -198,7 +198,6 @@ type Host struct {
 
 // Invitee : An invitee to a party from the database in json format
 type Invitee struct {
-	AtParty       bool   `json:"atParty"`
 	IsMale        bool   `json:"isMale"`
 	Name          string `json:"name"`
 	Rating        string `json:"rating"`
@@ -227,9 +226,9 @@ type BarData struct {
 
 // Attendee : An attendee to a bar in the database in json format
 type Attendee struct {
-	AtBar         bool   `json:"atBar"`
 	IsMale        bool   `json:"isMale"`
 	Name          string `json:"name"`
 	Rating        string `json:"rating"`
+	Status        string `json:"status"`
 	TimeLastRated string `json:"timeLastRated"`
 }
