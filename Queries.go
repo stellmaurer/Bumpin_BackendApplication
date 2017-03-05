@@ -160,13 +160,13 @@ func getBar() (map[string]*dynamodb.AttributeValue, error) {
 
 // PersonData : A person from the database in json format
 type PersonData struct {
-	BlackoutList []string `json:"blackoutList"`
-	FacebookID   string   `json:"facebookID"`
-	InvitedTo    []uint64 `json:"invitedTo"`
-	IsABarOwner  bool     `json:"isABarOwner"`
-	IsMale       bool     `json:"isMale"`
-	Name         string   `json:"name"`
-	PartyHostFor []uint64 `json:"partyHostFor"`
+	PeopleBlockingTheirActivityFromMe map[string]bool `json:"peopleBlockingTheirActivityFromMe"`
+	FacebookID                        string          `json:"facebookID"`
+	InvitedTo                         map[string]bool `json:"invitedTo"`
+	IsMale                            bool            `json:"isMale"`
+	Name                              string          `json:"name"`
+	PartyHostFor                      map[string]bool `json:"partyHostFor"`
+	BarHostFor                        map[string]bool `json:"barHostFor"`
 }
 
 // PartyData : A party from the database in json format
@@ -231,4 +231,10 @@ type Attendee struct {
 	Rating        string `json:"rating"`
 	Status        string `json:"status"`
 	TimeLastRated string `json:"timeLastRated"`
+}
+
+// QueryResult : The result of a query in json format
+type QueryResult struct {
+	Succeeded bool     `json:"succeeded"`
+	Errors    []string `json:"errors"`
 }

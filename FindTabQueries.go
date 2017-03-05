@@ -406,12 +406,11 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 	expressionAttributeNames2 := make(map[string]*string)
 	invitedTo := "invitedTo"
 	expressionAttributeNames2["#i"] = &invitedTo
+	expressionAttributeNames2["#p"] = &partyID
 	expressionValuePlaceholders2 := make(map[string]*dynamodb.AttributeValue)
-	var partyIDAttribute = dynamodb.AttributeValue{}
-	partyIDNumberSet := make([]*string, 1)
-	partyIDNumberSet[0] = &partyID
-	partyIDAttribute.SetNS(partyIDNumberSet)
-	expressionValuePlaceholders2[":partyID"] = &partyIDAttribute
+	var friendFacebookIDBoolAttribute = dynamodb.AttributeValue{}
+	friendFacebookIDBoolAttribute.SetBOOL(true)
+	expressionValuePlaceholders2[":bool"] = &friendFacebookIDBoolAttribute
 
 	keyMap2 := make(map[string]*dynamodb.AttributeValue)
 	var key2 = dynamodb.AttributeValue{}
@@ -423,7 +422,7 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 	updateItemInput2.SetExpressionAttributeValues(expressionValuePlaceholders2)
 	updateItemInput2.SetKey(keyMap2)
 	updateItemInput2.SetTableName("Person")
-	updateExpression2 := "ADD #i :partyID"
+	updateExpression2 := "SET #i.#p=:bool"
 	updateItemInput2.UpdateExpression = &updateExpression2
 	updateItemOutput2, updateItemOutputErr2 := getter.DynamoDB.UpdateItem(&updateItemInput2)
 
