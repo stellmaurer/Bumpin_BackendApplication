@@ -44,12 +44,14 @@ func main() {
 	*/
 
 	/*
-		Install/Uninstall the app queries
+		Delete the app queries
 	*/
 
 	/*
 		Login queries
 	*/
+	// curl "http://localhost:8080/createOrUpdatePerson?facebookID=27&isMale=true&name=Zander%20Cage"
+	http.HandleFunc("/createOrUpdatePerson", createOrUpdatePerson)
 
 	/*
 		More tab queries
