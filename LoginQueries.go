@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -17,27 +16,24 @@ func createOrUpdatePerson(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.URL.Query().Get("facebookID")
 	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
 	name := r.URL.Query().Get("name")
-
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
 	if isMaleConvErr != nil {
-		http.Error(w, "Parameter issue: "+isMaleConvErr.Error(), http.StatusInternalServerError)
+		queryResult.Error = "createOrUpdatePerson function: HTTP get request isMale parameter messed up. " + isMaleConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-
 	queryResult1 := createPersonHelper(facebookID, isMale, name)
 	queryResult2 := updatePersonHelper(facebookID, isMale, name)
-	var queryResult = QueryResult{}
-	queryResult.Succeeded = queryResult1.Succeeded && queryResult2.Succeeded
-	for i := 0; i < len(queryResult1.Errors); i++ {
-		queryResult.Errors = append(queryResult.Errors, queryResult1.Errors[i])
-	}
-	for i := len(queryResult1.Errors); i < len(queryResult1.Errors)+len(queryResult2.Errors); i++ {
-		queryResult.Errors = append(queryResult.Errors, queryResult2.Errors[i])
-	}
+	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(queryResult1)
+	json.NewEncoder(w).Encode(queryResult)
 }
 
 func createPersonHelper(facebookID string, isMale bool, name string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -46,7 +42,8 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "createPersonHelper function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -85,16 +82,22 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	putItemInput.SetItem(expressionValues)
 
 	_, err2 := getter.DynamoDB.PutItem(&putItemInput)
-	var queryResult = QueryResult{}
-	queryResult.Succeeded = true
+	var dynamodbCall = DynamodbCall{}
 	if err2 != nil {
-		queryResult.Succeeded = false
-		queryResult.Errors = append(queryResult.Errors, err2.Error())
+		dynamodbCall.Error = "createPersonHelper function: PutItem error (this error should be seen if the person is already in the database. " + err2.Error()
+		dynamodbCall.Succeeded = false
+	} else {
+		dynamodbCall.Succeeded = true
 	}
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
 	return queryResult
 }
 
 func updatePersonHelper(facebookID string, isMale bool, name string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -103,7 +106,8 @@ func updatePersonHelper(facebookID string, isMale bool, name string) QueryResult
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "updatePersonHelper function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -136,11 +140,15 @@ func updatePersonHelper(facebookID string, isMale bool, name string) QueryResult
 	updateItemInput.UpdateExpression = &updateExpression
 
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
-	var queryResult = QueryResult{}
-	queryResult.Succeeded = true
+	var dynamodbCall = DynamodbCall{}
 	if err2 != nil {
-		queryResult.Succeeded = false
-		queryResult.Errors = append(queryResult.Errors, err2.Error())
+		dynamodbCall.Error = "updatePersonHelper function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
 	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
 	return queryResult
 }

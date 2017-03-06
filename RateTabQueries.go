@@ -2,14 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
@@ -19,24 +17,35 @@ func rateParty(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.URL.Query().Get("facebookID")
 	rating := r.URL.Query().Get("rating")
 	timeLastRated := r.URL.Query().Get("timeLastRated")
-
-	data, err := ratePartyHelper(partyID, facebookID, rating, timeLastRated)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var party = PartyData{}
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &party)
-
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
+	queryResult := ratePartyHelper(partyID, facebookID, rating, timeLastRated)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(party)
+	json.NewEncoder(w).Encode(queryResult)
 }
 
-func ratePartyHelper(partyID string, facebookID string, rating string, timeLastRated string) (map[string]*dynamodb.AttributeValue, error) {
+// Change my rating for a bar (add my info to the attendees map if need be)
+func rateBar(w http.ResponseWriter, r *http.Request) {
+	barID := r.URL.Query().Get("barID")
+	facebookID := r.URL.Query().Get("facebookID")
+	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
+	name := r.URL.Query().Get("name")
+	rating := r.URL.Query().Get("rating")
+	status := "T"
+	timeLastRated := r.URL.Query().Get("timeLastRated")
+	var queryResult = QueryResult{}
+	if isMaleConvErr != nil {
+		queryResult.Error = "rateBar function: isMale parameter issue. " + isMaleConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = rateBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func ratePartyHelper(partyID string, facebookID string, rating string, timeLastRated string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -45,7 +54,8 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "ratePartyHelper function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -78,43 +88,24 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 	updateItemInput.SetTableName("Party")
 	updateExpression := "SET #i.#f.#r=:rating, #i.#f.#t=:timeLastRated"
 	updateItemInput.UpdateExpression = &updateExpression
-
-	updateItemOutput, err := getter.DynamoDB.UpdateItem(&updateItemInput)
-	return updateItemOutput.Attributes, err
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "ratePartyHelper function: UpdateItem error (probable cause: this party doesn't exist or you aren't invited to this party). " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
+	return queryResult
 }
 
-// Change my rating for a bar (add my info to the attendees map if need be)
-func rateBar(w http.ResponseWriter, r *http.Request) {
-	barID := r.URL.Query().Get("barID")
-	facebookID := r.URL.Query().Get("facebookID")
-	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
-	name := r.URL.Query().Get("name")
-	rating := r.URL.Query().Get("rating")
-	status := "T"
-	timeLastRated := r.URL.Query().Get("timeLastRated")
-
-	if isMaleConvErr != nil {
-		http.Error(w, "Parameter issue: "+isMaleConvErr.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	data, err := rateBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var bar = BarData{}
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &bar)
-
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(bar)
-}
-
-func rateBarHelper(barID string, facebookID string, isMale bool, name string, rating string, status string, timeLastRated string) (map[string]*dynamodb.AttributeValue, error) {
+func rateBarHelper(barID string, facebookID string, isMale bool, name string, rating string, status string, timeLastRated string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -123,7 +114,8 @@ func rateBarHelper(barID string, facebookID string, isMale bool, name string, ra
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "rateBarHelper function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -167,6 +159,17 @@ func rateBarHelper(barID string, facebookID string, isMale bool, name string, ra
 	updateExpression := "SET #a.#f=:attendee"
 	updateItemInput.UpdateExpression = &updateExpression
 
-	updateItemOutput, err := getter.DynamoDB.UpdateItem(&updateItemInput)
-	return updateItemOutput.Attributes, err
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "ratePartyHelper function: UpdateItem error. (probable cause: this party may not exist)" + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
+	return queryResult
 }

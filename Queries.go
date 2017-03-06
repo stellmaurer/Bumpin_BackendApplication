@@ -235,6 +235,49 @@ type Attendee struct {
 
 // QueryResult : The result of a query in json format
 type QueryResult struct {
-	Succeeded bool     `json:"succeeded"`
-	Errors    []string `json:"errors"`
+	Succeeded     bool           `json:"succeeded"`
+	Error         string         `json:"error"`
+	DynamodbCalls []DynamodbCall `json:"dynamodbCalls"`
+	People        []PersonData   `json:"people"`
+	Parties       []PartyData    `json:"parties"`
+	Bars          []BarData      `json:"bars"`
+}
+
+// DynamodbCall : The result of a dynamodb call.
+type DynamodbCall struct {
+	Succeeded bool   `json:"succeeded"`
+	Error     string `json:"error"`
+}
+
+func convertTwoQueryResultsToOne(queryResult1 QueryResult, queryResult2 QueryResult) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = queryResult1.Succeeded && queryResult2.Succeeded
+	queryResult.Error = queryResult1.Error + " " + queryResult2.Error
+	for i := 0; i < len(queryResult1.DynamodbCalls); i++ {
+		queryResult.DynamodbCalls = append(queryResult.DynamodbCalls, queryResult1.DynamodbCalls[i])
+	}
+	for i := 0; i < len(queryResult2.DynamodbCalls); i++ {
+		queryResult.DynamodbCalls = append(queryResult.DynamodbCalls, queryResult2.DynamodbCalls[i])
+	}
+	for i := 0; i < len(queryResult1.People); i++ {
+		queryResult.People = append(queryResult.People, queryResult1.People[i])
+	}
+	for i := 0; i < len(queryResult2.People); i++ {
+		queryResult.People = append(queryResult.People, queryResult2.People[i])
+	}
+
+	for i := 0; i < len(queryResult1.Parties); i++ {
+		queryResult.Parties = append(queryResult.Parties, queryResult1.Parties[i])
+	}
+	for i := 0; i < len(queryResult2.Parties); i++ {
+		queryResult.Parties = append(queryResult.Parties, queryResult2.Parties[i])
+	}
+
+	for i := 0; i < len(queryResult1.Bars); i++ {
+		queryResult.Bars = append(queryResult.Bars, queryResult1.Bars[i])
+	}
+	for i := 0; i < len(queryResult2.Parties); i++ {
+		queryResult.Bars = append(queryResult.Bars, queryResult2.Bars[i])
+	}
+	return queryResult
 }

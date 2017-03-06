@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -25,14 +24,7 @@ func updateBlockList(w http.ResponseWriter, r *http.Request) {
 	}
 	additionsQueryResult := additionsBlockListHelper(myFacebookID, additionsList)
 	removalsQueryResult := removalsBlockListHelper(myFacebookID, removalsList)
-	var queryResult = QueryResult{}
-	queryResult.Succeeded = additionsQueryResult.Succeeded && removalsQueryResult.Succeeded
-	for i := 0; i < len(additionsQueryResult.Errors); i++ {
-		queryResult.Errors = append(queryResult.Errors, additionsQueryResult.Errors[i])
-	}
-	for i := len(additionsQueryResult.Errors); i < len(additionsQueryResult.Errors)+len(removalsQueryResult.Errors); i++ {
-		queryResult.Errors = append(queryResult.Errors, removalsQueryResult.Errors[i])
-	}
+	queryResult := convertTwoQueryResultsToOne(additionsQueryResult, removalsQueryResult)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -40,12 +32,12 @@ func updateBlockList(w http.ResponseWriter, r *http.Request) {
 func additionsBlockListHelper(myFacebookID string, additionsList []string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = true
+	queryResult.DynamodbCalls = make([]DynamodbCall, len(additionsList))
 	for i := 0; i < len(additionsList); i++ {
-		err := addPersonToBlockList(myFacebookID, additionsList[i])
-		if err != nil {
-			queryResult.Errors = append(queryResult.Errors, "Error adding "+additionsList[i]+" to the Block List. "+err.Error())
-			queryResult.Succeeded = false
-		}
+		oneOfTheQueryResults := addPersonToBlockList(myFacebookID, additionsList[i])
+		queryResult.Error = queryResult.Error + oneOfTheQueryResults.Error
+		queryResult.Succeeded = queryResult.Succeeded && oneOfTheQueryResults.Succeeded
+		queryResult.DynamodbCalls[i] = oneOfTheQueryResults.DynamodbCalls[0]
 	}
 	return queryResult
 }
@@ -53,17 +45,20 @@ func additionsBlockListHelper(myFacebookID string, additionsList []string) Query
 func removalsBlockListHelper(myFacebookID string, removalsList []string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = true
+	queryResult.DynamodbCalls = make([]DynamodbCall, len(removalsList))
 	for i := 0; i < len(removalsList); i++ {
-		err := removePersonFromBlockList(myFacebookID, removalsList[i])
-		if err != nil {
-			queryResult.Errors = append(queryResult.Errors, "Error removing "+removalsList[i]+" from the Block List. "+err.Error())
-			queryResult.Succeeded = false
-		}
+		oneOfTheQueryResults := removePersonFromBlockList(myFacebookID, removalsList[i])
+		queryResult.Error = queryResult.Error + oneOfTheQueryResults.Error
+		queryResult.Succeeded = queryResult.Succeeded && oneOfTheQueryResults.Succeeded
+		queryResult.DynamodbCalls[i] = oneOfTheQueryResults.DynamodbCalls[0]
 	}
 	return queryResult
 }
 
-func addPersonToBlockList(myFacebookID string, theirFacebookID string) error {
+func addPersonToBlockList(myFacebookID string, theirFacebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -72,7 +67,8 @@ func addPersonToBlockList(myFacebookID string, theirFacebookID string) error {
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "addPersonToBlocklist function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -101,10 +97,24 @@ func addPersonToBlockList(myFacebookID string, theirFacebookID string) error {
 	updateItemInput.UpdateExpression = &updateExpression
 
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
-	return err2
+	var dynamodbCall = DynamodbCall{}
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	if err2 != nil {
+		dynamodbCall.Error = "addPersonToBlockList function: UpdateItem error. " + "Error adding " + theirFacebookID + " to the Block List. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
+	return queryResult
 }
 
-func removePersonFromBlockList(myFacebookID string, theirFacebookID string) error {
+func removePersonFromBlockList(myFacebookID string, theirFacebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -113,7 +123,8 @@ func removePersonFromBlockList(myFacebookID string, theirFacebookID string) erro
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "removePersonFromBlocklist function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -136,5 +147,15 @@ func removePersonFromBlockList(myFacebookID string, theirFacebookID string) erro
 	updateItemInput.UpdateExpression = &updateExpression
 
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
-	return err2
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "removePersonFromBlockList function: UpdateItem error. " + "Error removing " + theirFacebookID + " from the Block List. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
+	return queryResult
 }

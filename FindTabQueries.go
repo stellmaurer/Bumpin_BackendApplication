@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -18,23 +17,89 @@ import (
 // Find all parties I'm invited to
 func myParties(w http.ResponseWriter, r *http.Request) {
 	params := strings.Split(r.URL.Query().Get("partyID"), ",")
-	data, err := findMyParties(params)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	parties := make([]PartyData, len(params))
-	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data["Party"], &parties)
-
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
+	queryResult := myPartiesHelper(params)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(parties)
+	json.NewEncoder(w).Encode(queryResult)
 }
 
-func findMyParties(params []string) (map[string][]map[string]*dynamodb.AttributeValue, error) {
+// Find all bars that I'm close to
+func barsCloseToMe(w http.ResponseWriter, r *http.Request) {
+	latitude, latitudeErr := strconv.ParseFloat(r.URL.Query().Get("latitude"), 64)
+	longitude, longitudeErr := strconv.ParseFloat(r.URL.Query().Get("longitude"), 64)
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	if latitudeErr != nil {
+		queryResult.Error = "barsCloseToMe function: HTTP get request latitude parameter messed up. " + latitudeErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	if longitudeErr != nil {
+		queryResult.Error = "barsCloseToMe function: HTTP get request longitude parameter messed up. " + longitudeErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = barsCloseToMeHelper(latitude, longitude)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Change my attendance status to a party
+func changeAttendanceStatusToParty(w http.ResponseWriter, r *http.Request) {
+	partyID := r.URL.Query().Get("partyID")
+	facebookID := r.URL.Query().Get("facebookID")
+	status := r.URL.Query().Get("status")
+	queryResult := changeAttendanceStatusToPartyHelper(partyID, facebookID, status)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Change my attendance status to a bar (add my info to the attendees map if need be)
+func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
+	barID := r.URL.Query().Get("barID")
+	facebookID := r.URL.Query().Get("facebookID")
+	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
+	name := r.URL.Query().Get("name")
+	rating := r.URL.Query().Get("rating")
+	status := r.URL.Query().Get("status")
+	timeLastRated := r.URL.Query().Get("timeLastRated")
+
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	if isMaleConvErr != nil {
+		queryResult.Error = "changeAttendanceStatusToBar function: HTTP get request isMale parameter messed up. " + isMaleConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = changeAttendanceStatusToBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// As an invitee to a party, invite another friend to
+//    the same party if you have invitations left.
+func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
+	partyID := r.URL.Query().Get("partyID")
+	myFacebookID := r.URL.Query().Get("myFacebookID")
+	friendFacebookID := r.URL.Query().Get("friendFacebookID")
+	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
+	name := r.URL.Query().Get("name")
+
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	if isMaleConvErr != nil {
+		queryResult.Error = "inviteFriendToParty function: isMale parameter issue. " + isMaleConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = inviteFriendToPartyHelper(partyID, myFacebookID, friendFacebookID, isMale, name)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func myPartiesHelper(params []string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -43,7 +108,8 @@ func findMyParties(params []string) (map[string][]map[string]*dynamodb.Attribute
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "myPartiesHelper function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -56,48 +122,38 @@ func findMyParties(params []string) (map[string][]map[string]*dynamodb.Attribute
 		attributesAndValues[i] = make(map[string]*dynamodb.AttributeValue)
 		attributesAndValues[i]["partyID"] = &attributeValue
 	}
-
 	var keysAndAttributes dynamodb.KeysAndAttributes
 	keysAndAttributes.SetKeys(attributesAndValues)
-
 	requestedItems := make(map[string]*dynamodb.KeysAndAttributes)
 	requestedItems["Party"] = &keysAndAttributes
 	batchGetItemInput.SetRequestItems(requestedItems)
 	//getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"partyID": &attributeValue})
 	batchGetItemOutput, err2 := getter.DynamoDB.BatchGetItem(&batchGetItemInput)
-	return batchGetItemOutput.Responses, err2
-}
-
-// Find all bars that I'm close to
-func barsCloseToMe(w http.ResponseWriter, r *http.Request) {
-	latitude, latitudeErr := strconv.ParseFloat(r.URL.Query().Get("latitude"), 64)
-	longitude, longitudeErr := strconv.ParseFloat(r.URL.Query().Get("longitude"), 64)
-
-	if latitudeErr != nil {
-		http.Error(w, "HTTP get request latitude parameter messed up: "+latitudeErr.Error(), http.StatusInternalServerError)
-		return
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "myPartiesHelper function: BatchGetItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
 	}
-	if longitudeErr != nil {
-		http.Error(w, "HTTP get request longitude parameter messed up: "+longitudeErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	data, err := findBarsCloseToMe(latitude, longitude)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	bars := make([]BarData, len(data))
-	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &bars)
-
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	data := batchGetItemOutput.Responses
+	parties := make([]PartyData, len(params))
+	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data["Party"], &parties)
 	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
+		queryResult.Error = "myPartiesHelper function: UnmarshalListOfMaps error. " + jsonErr.Error()
+		return queryResult
 	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(bars)
+	queryResult.Parties = parties
+	queryResult.Succeeded = true
+	return queryResult
 }
 
-func findBarsCloseToMe(latitude float64, longitude float64) ([]map[string]*dynamodb.AttributeValue, error) {
+func barsCloseToMeHelper(latitude float64, longitude float64) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -106,7 +162,8 @@ func findBarsCloseToMe(latitude float64, longitude float64) ([]map[string]*dynam
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "findBarsCloseToMe function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -138,32 +195,31 @@ func findBarsCloseToMe(latitude float64, longitude float64) ([]map[string]*dynam
 	scanItemsInput.SetExpressionAttributeValues(expressionValuePlaceholders)
 	scanItemsInput.SetFilterExpression("(latitude BETWEEN :latitudeSouth AND :latitudeNorth) AND (longitude BETWEEN :longitudeEast AND :longitudeWest)")
 	scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
-	return scanItemsOutput.Items, err2
-}
-
-// Change my attendance status to a party
-func changeAttendanceStatusToParty(w http.ResponseWriter, r *http.Request) {
-	partyID := r.URL.Query().Get("partyID")
-	facebookID := r.URL.Query().Get("facebookID")
-	status := r.URL.Query().Get("status")
-
-	data, err := changeAttendanceStatusToPartyHelper(partyID, facebookID, status)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "findBarsCloseToMe function: Scan error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
 	}
-	var party = PartyData{}
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &party)
-
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	data := scanItemsOutput.Items
+	bars := make([]BarData, len(data))
+	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &bars)
 	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
+		queryResult.Error = "findBarsCloseToMe function: UnmarshalListOfMaps error. " + jsonErr.Error()
+		return queryResult
 	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(party)
+	queryResult.Bars = bars
+	queryResult.Succeeded = true
+	return queryResult
 }
 
-func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, status string) (map[string]*dynamodb.AttributeValue, error) {
+func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, status string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -172,7 +228,8 @@ func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, stat
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "changeAttendanceStatusToPartyHelper function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -200,42 +257,24 @@ func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, stat
 	updateExpression := "SET #i.#f.#s=:status"
 	updateItemInput.UpdateExpression = &updateExpression
 
-	updateItemOutput, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
-	return updateItemOutput.Attributes, err2
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "changeAttendanceStatusToPartyHelper function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
+	return queryResult
 }
 
-// Change my attendance status to a bar (add my info to the attendees map if need be)
-func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
-	barID := r.URL.Query().Get("barID")
-	facebookID := r.URL.Query().Get("facebookID")
-	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
-	name := r.URL.Query().Get("name")
-	rating := r.URL.Query().Get("rating")
-	status := r.URL.Query().Get("status")
-	timeLastRated := r.URL.Query().Get("timeLastRated")
-
-	if isMaleConvErr != nil {
-		http.Error(w, "Parameter issue: "+isMaleConvErr.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	data, err := changeAttendanceStatusToBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var bar = BarData{}
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &bar)
-
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(bar)
-}
-
-func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale bool, name string, rating string, status string, timeLastRated string) (map[string]*dynamodb.AttributeValue, error) {
+func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale bool, name string, rating string, status string, timeLastRated string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -244,7 +283,8 @@ func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale b
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "changeAttendanceStatusToBarHelper function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -288,48 +328,31 @@ func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale b
 	updateExpression := "SET #a.#f=:attendee"
 	updateItemInput.UpdateExpression = &updateExpression
 
-	updateItemOutput, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
-	return updateItemOutput.Attributes, err2
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "changeAttendanceStatusToBarHelper function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
+	return queryResult
 }
 
-// As an invitee to a party, invite another friend to
-//    the same party if you have invitations left.
-func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
-	partyID := r.URL.Query().Get("partyID")
-	myFacebookID := r.URL.Query().Get("myFacebookID")
-	friendFacebookID := r.URL.Query().Get("friendFacebookID")
-	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
-	name := r.URL.Query().Get("name")
-
-	if isMaleConvErr != nil {
-		http.Error(w, "Parameter issue: "+isMaleConvErr.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	data, err := inviteFriendToPartyHelper(partyID, myFacebookID, friendFacebookID, isMale, name)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var party = PartyData{}
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &party)
-
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(party)
-}
-
-func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebookID string, isMale bool, name string) (map[string]*dynamodb.AttributeValue, error) {
+func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebookID string, isMale bool, name string) QueryResult {
 	numberOfInvitationsLeft := "0"
 	rating := "N"
 	status := "I"
 	// constant in the past to make sure the invitee
 	//     can rate the party right away
-	timeLastRated := "01/01/2001 00:00:00"
+	timeLastRated := "01/01/2000 00:00:00"
 
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
 	type ItemGetter struct {
 		DynamoDB dynamodbiface.DynamoDBAPI
 	}
@@ -338,7 +361,8 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		fmt.Println("err")
+		queryResult.Error = "inviteFriendToPartyHelper function: session creation error. " + err.Error()
+		return queryResult
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
@@ -395,12 +419,17 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 	updateItemInput.SetTableName("Party")
 	updateExpression := "SET #i.#f=:invitee ADD #i.#m.#n :decrement"
 	updateItemInput.UpdateExpression = &updateExpression
+	_, updateItemOutputErr1 := getter.DynamoDB.UpdateItem(&updateItemInput)
 
-	updateItemOutput1, updateItemOutputErr1 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall1 = DynamodbCall{}
 	if updateItemOutputErr1 != nil {
-		return updateItemOutput1.Attributes, updateItemOutputErr1
+		dynamodbCall1.Error = "inviteFriendToPartyHelper function: UpdateItem1 error (probable cause: you either don't have any invitations left or your friend is already invited to this party). " + updateItemOutputErr1.Error()
+		dynamodbCall1.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall1
+		return queryResult
 	}
-
+	dynamodbCall1.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall1
 	// Now we need to update the friend's information to let them
 	//     know that they are invited to this party.
 	expressionAttributeNames2 := make(map[string]*string)
@@ -424,7 +453,17 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 	updateItemInput2.SetTableName("Person")
 	updateExpression2 := "SET #i.#p=:bool"
 	updateItemInput2.UpdateExpression = &updateExpression2
-	updateItemOutput2, updateItemOutputErr2 := getter.DynamoDB.UpdateItem(&updateItemInput2)
+	_, updateItemOutputErr2 := getter.DynamoDB.UpdateItem(&updateItemInput2)
 
-	return updateItemOutput2.Attributes, updateItemOutputErr2
+	var dynamodbCall2 = DynamodbCall{}
+	if updateItemOutputErr2 != nil {
+		dynamodbCall2.Error = "inviteFriendToPartyHelper function: UpdateItem2 error (probable cause: your friend's facebookID isn't in the database). " + updateItemOutputErr2.Error()
+		dynamodbCall2.Succeeded = false
+		queryResult.DynamodbCalls[1] = dynamodbCall2
+		return queryResult
+	}
+	dynamodbCall2.Succeeded = true
+	queryResult.DynamodbCalls[1] = dynamodbCall2
+	queryResult.Succeeded = true
+	return queryResult
 }
