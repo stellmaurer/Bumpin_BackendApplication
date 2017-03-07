@@ -6,16 +6,8 @@ func main() {
 	/*
 		Starting queries - won't be used in app
 	*/
-	// curl "http://localhost:8080/hello"
-	http.HandleFunc("/hello", hello)
 	// curl "http://localhost:8080/tables"
 	http.HandleFunc("/tables", tables)
-	// curl "http://localhost:8080/person"
-	http.HandleFunc("/person", person)
-	// curl "http://localhost:8080/party"
-	http.HandleFunc("/party", party)
-	// curl "http://localhost:8080/bar"
-	http.HandleFunc("/bar", bar)
 
 	/*
 		Find tab queries
@@ -46,12 +38,16 @@ func main() {
 	/*
 		Delete the app queries
 	*/
+	// curl "http://localhost:8080/deletePerson?facebookID=27"
+	http.HandleFunc("/deletePerson", deletePerson)
 
 	/*
 		Login queries
 	*/
 	// curl "http://localhost:8080/createOrUpdatePerson?facebookID=27&isMale=true&name=Zander%20Cage"
 	http.HandleFunc("/createOrUpdatePerson", createOrUpdatePerson)
+	// curl "http://localhost:8080/getPerson?facebookID=27"
+	http.HandleFunc("/getPerson", getPerson)
 
 	/*
 		More tab queries

@@ -2,19 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
-
-func hello(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello!\n"))
-}
 
 func tables(w http.ResponseWriter, r *http.Request) {
 	data, err := getTables()
@@ -25,54 +18,6 @@ func tables(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(data)
-}
-
-func person(w http.ResponseWriter, r *http.Request) {
-	data, err := getPerson()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var person PersonData
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &person)
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(person)
-}
-
-func party(w http.ResponseWriter, r *http.Request) {
-	data, err := getParty()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var party PartyData
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &party)
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(party)
-}
-
-func bar(w http.ResponseWriter, r *http.Request) {
-	data, err := getBar()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var bar BarData
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &bar)
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(bar)
 }
 
 func getTables() (string, error) {
@@ -87,75 +32,6 @@ func getTables() (string, error) {
 		tables = tables + *table
 	}
 	return tables, nil
-}
-
-func getPerson() (map[string]*dynamodb.AttributeValue, error) {
-	type ItemGetter struct {
-		DynamoDB dynamodbiface.DynamoDBAPI
-	}
-	// Setup
-	var getter = new(ItemGetter)
-	var config = &aws.Config{Region: aws.String("us-west-2")}
-	sess, err := session.NewSession(config)
-	if err != nil {
-		fmt.Println("err")
-	}
-	var svc = dynamodb.New(sess)
-	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
-	// Finally
-	var getItemInput = dynamodb.GetItemInput{}
-	getItemInput.SetTableName("Person")
-	var attributeValue = dynamodb.AttributeValue{}
-	attributeValue.SetS("12345699033")
-	getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"facebookID": &attributeValue})
-	getItemOutput, err2 := getter.DynamoDB.GetItem(&getItemInput)
-	return getItemOutput.Item, err2
-}
-
-func getParty() (map[string]*dynamodb.AttributeValue, error) {
-	type ItemGetter struct {
-		DynamoDB dynamodbiface.DynamoDBAPI
-	}
-	// Setup
-	var getter = new(ItemGetter)
-	var config = &aws.Config{Region: aws.String("us-west-2")}
-	sess, err := session.NewSession(config)
-	if err != nil {
-		fmt.Println("err")
-	}
-	var svc = dynamodb.New(sess)
-	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
-	// Finally
-	var getItemInput = dynamodb.GetItemInput{}
-	getItemInput.SetTableName("Party")
-	var attributeValue = dynamodb.AttributeValue{}
-	attributeValue.SetN("1")
-	getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"partyID": &attributeValue})
-	getItemOutput, err2 := getter.DynamoDB.GetItem(&getItemInput)
-	return getItemOutput.Item, err2
-}
-
-func getBar() (map[string]*dynamodb.AttributeValue, error) {
-	type ItemGetter struct {
-		DynamoDB dynamodbiface.DynamoDBAPI
-	}
-	// Setup
-	var getter = new(ItemGetter)
-	var config = &aws.Config{Region: aws.String("us-west-2")}
-	sess, err := session.NewSession(config)
-	if err != nil {
-		fmt.Println("err")
-	}
-	var svc = dynamodb.New(sess)
-	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
-	// Finally
-	var getItemInput = dynamodb.GetItemInput{}
-	getItemInput.SetTableName("Bar")
-	var attributeValue = dynamodb.AttributeValue{}
-	attributeValue.SetN("1")
-	getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"barID": &attributeValue})
-	getItemOutput, err2 := getter.DynamoDB.GetItem(&getItemInput)
-	return getItemOutput.Item, err2
 }
 
 // PersonData : A person from the database in json format

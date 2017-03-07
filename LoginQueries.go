@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
@@ -26,6 +27,13 @@ func createOrUpdatePerson(w http.ResponseWriter, r *http.Request) {
 	queryResult1 := createPersonHelper(facebookID, isMale, name)
 	queryResult2 := updatePersonHelper(facebookID, isMale, name)
 	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func getPerson(w http.ResponseWriter, r *http.Request) {
+	facebookID := r.URL.Query().Get("facebookID")
+	queryResult := getPersonHelper(facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -149,6 +157,52 @@ func updatePersonHelper(facebookID string, isMale bool, name string) QueryResult
 	}
 	dynamodbCall.Succeeded = true
 	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func getPersonHelper(facebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "getPersonHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	var getItemInput = dynamodb.GetItemInput{}
+	getItemInput.SetTableName("Person")
+	var attributeValue = dynamodb.AttributeValue{}
+	attributeValue.SetS(facebookID)
+	getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"facebookID": &attributeValue})
+	getItemOutput, err2 := getter.DynamoDB.GetItem(&getItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "getPersonHelper function: GetItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	data := getItemOutput.Item
+	var person PersonData
+	jsonErr := dynamodbattribute.UnmarshalMap(data, &person)
+	if jsonErr != nil {
+		queryResult.Error = "getPersonHelper function: UnmarshalListOfMaps error. " + jsonErr.Error()
+		return queryResult
+	}
+	queryResult.People = make([]PersonData, 1)
+	queryResult.People[0] = person
 	queryResult.Succeeded = true
 	return queryResult
 }
