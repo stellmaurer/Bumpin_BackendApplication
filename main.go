@@ -34,11 +34,11 @@ func main() {
 	/*
 		Host tab queries
 	*/
-	// curl "http://localhost:8080/createParty?facebookID=000037&isMale=true&name=Stephen%20Ellmaurer&addressLine1=blah1&addressLine2=blah2&city=Fox%20Point&country=United%20States&details=none&drinksProvided=true&endTime=02/02/2017%2002:00:00&feeForDrinks=false&invitesForNewInvitees=4&latitude=-34&longitude=12&startTime=02/01/2017%2022:00:00&stateProvinceRegion=Wisconsin&title=Badger%20Bash&zipCode=53217"
+	// curl "http://localhost:8080/createParty?facebookID=000037&isMale=true&name=Stephen%20Ellmaurer&addressLine1=blah1&city=Fox%20Point&country=United%20States&drinksProvided=true&endTime=02/02/2017%2002:00:00&feeForDrinks=false&invitesForNewInvitees=4&latitude=-34&longitude=12&startTime=02/01/2017%2022:00:00&stateProvinceRegion=Wisconsin&title=Badger%20Bash&zipCode=53217"
 	http.HandleFunc("/createParty", createParty)
-	// curl "http://localhost:8080/deleteParty?partyID=11154013587666973726"
+	// curl "http://localhost:8080/deleteParty?partyID=7833179233048568588"
 	http.HandleFunc("/deleteParty", deleteParty)
-	// curl "http://localhost:8080/updateParty?addressLine1=blah1&addressLine2=blah2&city=Fox%20Point&country=United%20States&details=none&drinksProvided=true&endTime=02/02/2017%2002:00:00&feeForDrinks=false&invitesForNewInvitees=4&latitude=-34&longitude=12&partyID=3&startTime=02/01/2017%2022:00:00&stateProvinceRegion=Wisconsin&title=Badger%20Bash&zipCode=53217"
+	// curl "http://localhost:8080/updateParty?partyID=12258969221770119542&addressLine1=University%20of%20Milwaukee%20Dorms&city=Milwaukee&country=United%20States&details=none&drinksProvided=true&endTime=02/03/2016%2002:00:00&feeForDrinks=true&invitesForNewInvitees=3&latitude=33&longitude=77&startTime=02/02/2016%2019:02:00&stateProvinceRegion=Wisconsin&title=Panther%20Game&zipCode=56677"
 	http.HandleFunc("/updateParty", updateParty)
 
 	/*
@@ -50,7 +50,7 @@ func main() {
 	/*
 		Login queries
 	*/
-	// curl "http://localhost:8080/createOrUpdatePerson?facebookID=27&isMale=true&name=Zander%20Cage"
+	// curl "http://localhost:8080/createOrUpdatePerson?facebookID=000037&isMale=true&name=Zander%20Blah"
 	http.HandleFunc("/createOrUpdatePerson", createOrUpdatePerson)
 	// curl "http://localhost:8080/getPerson?facebookID=27"
 	http.HandleFunc("/getPerson", getPerson)
