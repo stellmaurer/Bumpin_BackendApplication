@@ -34,6 +34,12 @@ func main() {
 	/*
 		Host tab queries
 	*/
+	// curl "http://localhost:8080/createParty?facebookID=000037&isMale=true&name=Stephen%20Ellmaurer&addressLine1=blah1&addressLine2=blah2&city=Fox%20Point&country=United%20States&details=none&drinksProvided=true&endTime=02/02/2017%2002:00:00&feeForDrinks=false&invitesForNewInvitees=4&latitude=-34&longitude=12&startTime=02/01/2017%2022:00:00&stateProvinceRegion=Wisconsin&title=Badger%20Bash&zipCode=53217"
+	http.HandleFunc("/createParty", createParty)
+	// curl "http://localhost:8080/deleteParty?partyID=11154013587666973726"
+	http.HandleFunc("/deleteParty", deleteParty)
+	// curl "http://localhost:8080/updateParty?addressLine1=blah1&addressLine2=blah2&city=Fox%20Point&country=United%20States&details=none&drinksProvided=true&endTime=02/02/2017%2002:00:00&feeForDrinks=false&invitesForNewInvitees=4&latitude=-34&longitude=12&partyID=3&startTime=02/01/2017%2022:00:00&stateProvinceRegion=Wisconsin&title=Badger%20Bash&zipCode=53217"
+	http.HandleFunc("/updateParty", updateParty)
 
 	/*
 		Delete the app queries

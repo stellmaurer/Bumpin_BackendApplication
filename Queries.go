@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"math/rand"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -47,23 +48,24 @@ type PersonData struct {
 
 // PartyData : A party from the database in json format
 type PartyData struct {
-	AddressLine1        string              `json:"addressLine1"`
-	AddressLine2        string              `json:"addressLine2"`
-	City                string              `json:"city"`
-	Country             string              `json:"country"`
-	Details             string              `json:"details"`
-	DrinksProvided      bool                `json:"drinksProvided"`
-	EndTime             string              `json:"endTime"`
-	FeeForDrinks        bool                `json:"feeForDrinks"`
-	Hosts               map[string]*Host    `json:"hosts"`
-	Invitees            map[string]*Invitee `json:"invitees"`
-	Latitude            float64             `json:"latitude"`
-	Longitude           float64             `json:"longitude"`
-	PartyID             uint64              `json:"partyID"`
-	StartTime           string              `json:"startTime"`
-	StateProvinceRegion string              `json:"stateProvinceRegion"`
-	Title               string              `json:"title"`
-	ZipCode             uint32              `json:"zipCode"`
+	AddressLine1          string              `json:"addressLine1"`
+	AddressLine2          string              `json:"addressLine2"`
+	City                  string              `json:"city"`
+	Country               string              `json:"country"`
+	Details               string              `json:"details"`
+	DrinksProvided        bool                `json:"drinksProvided"`
+	EndTime               string              `json:"endTime"`
+	FeeForDrinks          bool                `json:"feeForDrinks"`
+	Hosts                 map[string]*Host    `json:"hosts"`
+	Invitees              map[string]*Invitee `json:"invitees"`
+	Latitude              float64             `json:"latitude"`
+	Longitude             float64             `json:"longitude"`
+	InvitesForNewInvitees uint16              `json:"invitesForNewInvitees"`
+	PartyID               uint64              `json:"partyID"`
+	StartTime             string              `json:"startTime"`
+	StateProvinceRegion   string              `json:"stateProvinceRegion"`
+	Title                 string              `json:"title"`
+	ZipCode               uint32              `json:"zipCode"`
 }
 
 // Host : A host of a party from the database in json format
@@ -156,4 +158,8 @@ func convertTwoQueryResultsToOne(queryResult1 QueryResult, queryResult2 QueryRes
 		queryResult.Bars = append(queryResult.Bars, queryResult2.Bars[i])
 	}
 	return queryResult
+}
+
+func getRandomID() uint64 {
+	return uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
 }
