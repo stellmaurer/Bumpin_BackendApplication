@@ -92,12 +92,13 @@ type BarData struct {
 	City                string               `json:"city"`
 	ClosingTime         string               `json:"closingTime"`
 	Country             string               `json:"country"`
-	Description         string               `json:"description"`
+	Details             string               `json:"details"`
 	Hosts               map[string]*Host     `json:"hosts"`
 	LastCall            string               `json:"lastCall"`
 	Latitude            float64              `json:"latitude"`
 	Longitude           float64              `json:"longitude"`
 	Name                string               `json:"name"`
+	OpenAt              string               `json:"openAt"`
 	StateProvinceRegion string               `json:"stateProvinceRegion"`
 	ZipCode             uint32               `json:"zipCode"`
 }

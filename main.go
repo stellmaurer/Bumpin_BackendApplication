@@ -36,6 +36,8 @@ func main() {
 	*/
 	// curl "http://localhost:8080/createParty?facebookID=000037&isMale=true&name=Stephen%20Ellmaurer&addressLine1=blah1&city=Fox%20Point&country=United%20States&drinksProvided=true&endTime=02/02/2017%2002:00:00&feeForDrinks=false&invitesForNewInvitees=4&latitude=-34&longitude=12&startTime=02/01/2017%2022:00:00&stateProvinceRegion=Wisconsin&title=Badger%20Bash&zipCode=53217"
 	http.HandleFunc("/createParty", createParty)
+	// curl "http://localhost:8080/createBar?facebookID=12345699033&isMale=false&nameOfCreator=Sarah%20Carlson&addressLine1=3001%20University%20St&city=Madison&closingTime=3:00%20AM&country=United%20States&details=A%20bar%20for%20gymnasts&lastCall=2:45%20AM&latitude=-22&longitude=11&name=Gymbar&openAt=4:00%20PM&stateProvinceRegion=Wisconsin&zipCode=53217"
+	http.HandleFunc("/createBar", createBar)
 	// curl "http://localhost:8080/deleteParty?partyID=7833179233048568588"
 	http.HandleFunc("/deleteParty", deleteParty)
 	// curl "http://localhost:8080/updateParty?partyID=12258969221770119542&addressLine1=University%20of%20Milwaukee%20Dorms&city=Milwaukee&country=United%20States&details=none&drinksProvided=true&endTime=02/03/2016%2002:00:00&feeForDrinks=true&invitesForNewInvitees=3&latitude=33&longitude=77&startTime=02/02/2016%2019:02:00&stateProvinceRegion=Wisconsin&title=Panther%20Game&zipCode=56677"
