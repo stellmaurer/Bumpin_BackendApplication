@@ -40,6 +40,8 @@ func main() {
 	http.HandleFunc("/createBar", createBar)
 	// curl "http://localhost:8080/deleteParty?partyID=7833179233048568588"
 	http.HandleFunc("/deleteParty", deleteParty)
+	// curl "http://localhost:8080/deleteBar?barID=11154013587666973726"
+	http.HandleFunc("/deleteBar", deleteBar)
 	// curl "http://localhost:8080/updateParty?partyID=12258969221770119542&addressLine1=University%20of%20Milwaukee%20Dorms&city=Milwaukee&country=United%20States&details=none&drinksProvided=true&endTime=02/03/2016%2002:00:00&feeForDrinks=true&invitesForNewInvitees=3&latitude=33&longitude=77&startTime=02/02/2016%2019:02:00&stateProvinceRegion=Wisconsin&title=Panther%20Game&zipCode=56677"
 	http.HandleFunc("/updateParty", updateParty)
 

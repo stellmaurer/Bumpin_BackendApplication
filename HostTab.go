@@ -98,10 +98,18 @@ func createBar(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-// Delete a Person from the database
+// Delete a Party from the database
 func deleteParty(w http.ResponseWriter, r *http.Request) {
 	partyID := r.URL.Query().Get("partyID")
 	queryResult := deletePartyHelper(partyID)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Delete a Bar from the database
+func deleteBar(w http.ResponseWriter, r *http.Request) {
+	barID := r.URL.Query().Get("barID")
+	queryResult := deleteBarHelper(barID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -601,7 +609,7 @@ func deletePartyHelper(partyID string) QueryResult {
 	if queryResult1.Succeeded == false {
 		return queryResult1
 	}
-	queryResult2 := removePartyFromPartyHostForMapInPersonTableForEveryHostToTheParty(partyID, getPartyQueryResult.Parties[0].Hosts)
+	queryResult2 := removePartyFromPartyHostForMapInPersonTableForEveryHostOfTheParty(partyID, getPartyQueryResult.Parties[0].Hosts)
 	if queryResult2.Succeeded == false {
 		return queryResult2
 	}
@@ -661,7 +669,7 @@ func removePartyFromInvitedToMapInPersonTableForEveryoneInvitedToParty(partyID s
 	return queryResult
 }
 
-func removePartyFromPartyHostForMapInPersonTableForEveryHostToTheParty(partyID string, hosts map[string]*Host) QueryResult {
+func removePartyFromPartyHostForMapInPersonTableForEveryHostOfTheParty(partyID string, hosts map[string]*Host) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, len(hosts))
@@ -768,6 +776,124 @@ func removePartyFromPartyHostForMapInPersonTable(facebookID string, partyID stri
 	var dynamodbCall = DynamodbCall{}
 	if updateItemOutputErr != nil {
 		dynamodbCall.Error = "removePartyFromPartyHostForMapInPersonTable function: UpdateItem error (probable cause: this facebookID isn't in the database). " + updateItemOutputErr.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func deleteBarHelper(barID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+
+	getBarQueryResult := getBar(barID)
+	if getBarQueryResult.Succeeded == false {
+		return getBarQueryResult
+	}
+	removeHostsQueryResult := removeBarFromBarHostForMapInPersonTableForEveryHostOfTheBar(barID, getBarQueryResult.Bars[0].Hosts)
+	if removeHostsQueryResult.Succeeded == false {
+		return removeHostsQueryResult
+	}
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "deleteBarHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetN(barID)
+	keyMap["barID"] = &key
+
+	var deleteItemInput = dynamodb.DeleteItemInput{}
+	deleteItemInput.SetTableName("Bar")
+	deleteItemInput.SetKey(keyMap)
+
+	_, err2 := getter.DynamoDB.DeleteItem(&deleteItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "deleteBarHelper function: DeleteItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func removeBarFromBarHostForMapInPersonTableForEveryHostOfTheBar(barID string, hosts map[string]*Host) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, len(hosts))
+	i := 0
+	for k := range hosts {
+		qr1 := removeBarFromBarHostForMapInPersonTable(k, barID)
+		if qr1.Succeeded == false {
+			queryResult.DynamodbCalls[i] = qr1.DynamodbCalls[0]
+			queryResult.Error = qr1.Error
+			return queryResult
+		}
+		queryResult.DynamodbCalls[i] = qr1.DynamodbCalls[0]
+		i++
+	}
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func removeBarFromBarHostForMapInPersonTable(facebookID string, barID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "removeBarFromBarHostForMapInPersonTable function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var barHostFor = "barHostFor"
+	expressionAttributeNames["#barHostFor"] = &barHostFor
+	expressionAttributeNames["#barID"] = &barID
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetS(facebookID)
+	keyMap["facebookID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Person")
+	updateExpression := "Remove #barHostFor.#barID"
+	updateItemInput.UpdateExpression = &updateExpression
+	_, updateItemOutputErr := getter.DynamoDB.UpdateItem(&updateItemInput)
+
+	var dynamodbCall = DynamodbCall{}
+	if updateItemOutputErr != nil {
+		dynamodbCall.Error = "removeBarFromBarHostForMapInPersonTable function: UpdateItem error (probable cause: this facebookID isn't in the database). " + updateItemOutputErr.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
