@@ -40,10 +40,14 @@ func main() {
 	http.HandleFunc("/createBar", createBar)
 	// curl "http://localhost:8080/deleteParty?partyID=7833179233048568588"
 	http.HandleFunc("/deleteParty", deleteParty)
-	// curl "http://localhost:8080/deleteBar?barID=11154013587666973726"
+	// curl "http://localhost:8080/deleteBar?barID=88"
 	http.HandleFunc("/deleteBar", deleteBar)
 	// curl "http://localhost:8080/updateParty?partyID=12258969221770119542&addressLine1=University%20of%20Milwaukee%20Dorms&city=Milwaukee&country=United%20States&details=none&drinksProvided=true&endTime=02/03/2016%2002:00:00&feeForDrinks=true&invitesForNewInvitees=3&latitude=33&longitude=77&startTime=02/02/2016%2019:02:00&stateProvinceRegion=Wisconsin&title=Panther%20Game&zipCode=56677"
 	http.HandleFunc("/updateParty", updateParty)
+	// curl "http://localhost:8080/updateBar?barID=2&addressLine1=102%20Castro%20Street&city=Mountain%20View&closingTime=3:00%20AM&country=United%20States&details=Jack%20Daniels%20is%20free.&lastCall=4:00%20AM&latitude=30&longitude=-121&name=Jackermans&openAt=8:00%20PM&stateProvinceRegion=CA&zipCode=94043"
+	http.HandleFunc("/updateBar", updateBar)
+	// curl "http://localhost:8080/setNumberOfInvitationsLeftForInvitees?partyID=1&invitees=1111,3303,4000&invitationsLeft=2,3,4"
+	http.HandleFunc("/setNumberOfInvitationsLeftForInvitees", setNumberOfInvitationsLeftForInvitees)
 
 	/*
 		Delete the app queries

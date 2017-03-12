@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -12,7 +14,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-const null = "null"
+// NULL : a string which contains the word "null" to replace the empty
+//		string "" since dynamodb doesn't allow empty strings
+const NULL = "null"
 
 // Create a party
 func createParty(w http.ResponseWriter, r *http.Request) {
@@ -52,10 +56,10 @@ func createParty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if addressLine2 == "" {
-		addressLine2 = null
+		addressLine2 = NULL
 	}
 	if details == "" {
-		details = null
+		details = NULL
 	}
 	queryResult = createPartyHelper(facebookID, isMale, name, addressLine1, addressLine2, city, country, details, drinksProvided, endTime, feeForDrinks, invitesForNewInvitees, latitude, longitude, partyID, startTime, stateProvinceRegion, title, zipCode)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -88,10 +92,10 @@ func createBar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if addressLine2 == "" {
-		addressLine2 = null
+		addressLine2 = NULL
 	}
 	if details == "" {
-		details = null
+		details = NULL
 	}
 	queryResult = createBarHelper(facebookID, isMale, nameOfCreator, addressLine1, addressLine2, barID, city, closingTime, country, details, lastCall, latitude, longitude, name, openAt, stateProvinceRegion, zipCode)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -144,12 +148,57 @@ func updateParty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if addressLine2 == "" {
-		addressLine2 = null
+		addressLine2 = NULL
 	}
 	if details == "" {
-		details = null
+		details = NULL
 	}
 	queryResult = updatePartyHelper(addressLine1, addressLine2, city, country, details, drinksProvided, endTime, feeForDrinks, invitesForNewInvitees, latitude, longitude, partyID, startTime, stateProvinceRegion, title, zipCode)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Update a bar's information
+func updateBar(w http.ResponseWriter, r *http.Request) {
+	addressLine1 := r.URL.Query().Get("addressLine1")
+	addressLine2 := r.URL.Query().Get("addressLine2")
+	barID := r.URL.Query().Get("barID")
+	city := r.URL.Query().Get("city")
+	closingTime := r.URL.Query().Get("closingTime")
+	country := r.URL.Query().Get("country")
+	details := r.URL.Query().Get("details")
+	lastCall := r.URL.Query().Get("lastCall")
+	latitude := r.URL.Query().Get("latitude")
+	longitude := r.URL.Query().Get("longitude")
+	name := r.URL.Query().Get("name")
+	openAt := r.URL.Query().Get("openAt")
+	stateProvinceRegion := r.URL.Query().Get("stateProvinceRegion")
+	zipCode := r.URL.Query().Get("zipCode")
+	if addressLine2 == "" {
+		addressLine2 = NULL
+	}
+	if details == "" {
+		details = NULL
+	}
+	queryResult := updateBarHelper(addressLine1, addressLine2, barID, city, closingTime, country, details, lastCall, latitude, longitude, name, openAt, stateProvinceRegion, zipCode)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// As a host of the party, change the number of invitations
+//		(doesn't have to be the same number) that the selected guests have
+func setNumberOfInvitationsLeftForInvitees(w http.ResponseWriter, r *http.Request) {
+	partyID := r.URL.Query().Get("partyID")
+	invitees := strings.Split(r.URL.Query().Get("invitees"), ",")
+	invitationsLeft := strings.Split(r.URL.Query().Get("invitationsLeft"), ",")
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	if len(invitees) != len(invitationsLeft) {
+		queryResult.Error = "Length of invitees array is not the same length as the invitationsLeft array."
+	} else {
+		queryResult = setNumberOfInvitationsLeftForInviteesHelper(partyID, invitees, invitationsLeft)
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -538,7 +587,6 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	var stateProvinceRegionAttributeValue = dynamodb.AttributeValue{}
 	var titleAttributeValue = dynamodb.AttributeValue{}
 	var zipCodeAttributeValue = dynamodb.AttributeValue{}
-	invitesForNewInviteesAttributeValue.SetN(invitesForNewInvitees)
 	addressLine1AttributeValue.SetS(addressLine1)
 	addressLine2AttributeValue.SetS(addressLine2)
 	cityAttributeValue.SetS(city)
@@ -586,6 +634,120 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	var dynamodbCall = DynamodbCall{}
 	if err2 != nil {
 		dynamodbCall.Error = "updatePartyHelper function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func updateBarHelper(addressLine1 string, addressLine2 string, barID string, city string, closingTime string, country string, details string, lastCall string, latitude string, longitude string, name string, openAt string, stateProvinceRegion string, zipCode string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "updateBarHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+
+	// switch: startTime to openAt
+	expressionAttributeNames := make(map[string]*string)
+	var addressLine1String = "addressLine1"
+	var addressLine2String = "addressLine2"
+	var cityString = "city"
+	var closingTimeString = "closingTime"
+	var countryString = "country"
+	var detailsString = "details"
+	var lastCallString = "lastCall"
+	var latitudeString = "latitude"
+	var longitudeString = "longitude"
+	var nameString = "name"
+	var openAtString = "openAt"
+	var stateProvinceRegionString = "stateProvinceRegion"
+	var zipCodeString = "zipCode"
+	expressionAttributeNames["#addressLine1"] = &addressLine1String
+	expressionAttributeNames["#addressLine2"] = &addressLine2String
+	expressionAttributeNames["#city"] = &cityString
+	expressionAttributeNames["#closingTime"] = &closingTimeString
+	expressionAttributeNames["#country"] = &countryString
+	expressionAttributeNames["#details"] = &detailsString
+	expressionAttributeNames["#lastCall"] = &lastCallString
+	expressionAttributeNames["#latitude"] = &latitudeString
+	expressionAttributeNames["#longitude"] = &longitudeString
+	expressionAttributeNames["#name"] = &nameString
+	expressionAttributeNames["#openAt"] = &openAtString
+	expressionAttributeNames["#stateProvinceRegion"] = &stateProvinceRegionString
+	expressionAttributeNames["#zipCode"] = &zipCodeString
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var addressLine1AttributeValue = dynamodb.AttributeValue{}
+	var addressLine2AttributeValue = dynamodb.AttributeValue{}
+	var cityAttributeValue = dynamodb.AttributeValue{}
+	var closingTimeAttributeValue = dynamodb.AttributeValue{}
+	var countryAttributeValue = dynamodb.AttributeValue{}
+	var detailsAttributeValue = dynamodb.AttributeValue{}
+	var lastCallAttributeValue = dynamodb.AttributeValue{}
+	var latitudeAttributeValue = dynamodb.AttributeValue{}
+	var longitudeAttributeValue = dynamodb.AttributeValue{}
+	var nameAttributeValue = dynamodb.AttributeValue{}
+	var openAtAttributeValue = dynamodb.AttributeValue{}
+	var stateProvinceRegionAttributeValue = dynamodb.AttributeValue{}
+	var zipCodeAttributeValue = dynamodb.AttributeValue{}
+	addressLine1AttributeValue.SetS(addressLine1)
+	addressLine2AttributeValue.SetS(addressLine2)
+	cityAttributeValue.SetS(city)
+	closingTimeAttributeValue.SetS(closingTime)
+	countryAttributeValue.SetS(country)
+	detailsAttributeValue.SetS(details)
+	lastCallAttributeValue.SetS(lastCall)
+	latitudeAttributeValue.SetN(latitude)
+	longitudeAttributeValue.SetN(longitude)
+	nameAttributeValue.SetS(name)
+	openAtAttributeValue.SetS(openAt)
+	stateProvinceRegionAttributeValue.SetS(stateProvinceRegion)
+	zipCodeAttributeValue.SetN(zipCode)
+	expressionValuePlaceholders[":addressLine1"] = &addressLine1AttributeValue
+	expressionValuePlaceholders[":addressLine2"] = &addressLine2AttributeValue
+	expressionValuePlaceholders[":city"] = &cityAttributeValue
+	expressionValuePlaceholders[":closingTime"] = &closingTimeAttributeValue
+	expressionValuePlaceholders[":country"] = &countryAttributeValue
+	expressionValuePlaceholders[":details"] = &detailsAttributeValue
+	expressionValuePlaceholders[":lastCall"] = &lastCallAttributeValue
+	expressionValuePlaceholders[":latitude"] = &latitudeAttributeValue
+	expressionValuePlaceholders[":longitude"] = &longitudeAttributeValue
+	expressionValuePlaceholders[":name"] = &nameAttributeValue
+	expressionValuePlaceholders[":openAt"] = &openAtAttributeValue
+	expressionValuePlaceholders[":stateProvinceRegion"] = &stateProvinceRegionAttributeValue
+	expressionValuePlaceholders[":zipCode"] = &zipCodeAttributeValue
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetN(barID)
+	keyMap["barID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Bar")
+	updateExpression := "SET #addressLine1=:addressLine1, #addressLine2=:addressLine2, #city=:city, #closingTime=:closingTime, #country=:country, #details=:details, #lastCall=:lastCall, #latitude=:latitude, #longitude=:longitude, #name=:name, #openAt=:openAt, #stateProvinceRegion=:stateProvinceRegion, #zipCode=:zipCode"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "updateBarHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
@@ -996,6 +1158,72 @@ func getBar(barID string) QueryResult {
 	}
 	queryResult.Bars = make([]BarData, 1)
 	queryResult.Bars[0] = bar
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func setNumberOfInvitationsLeftForInviteesHelper(partyID string, invitees []string, invitationsLeft []string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "setNumberOfInvitationsLeftForInviteesHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var inviteesString = "invitees"
+	var numberOfInvitationsLeftString = "numberOfInvitationsLeft"
+	expressionAttributeNames["#invitees"] = &inviteesString
+	expressionAttributeNames["#numberOfInvitationsLeft"] = &numberOfInvitationsLeftString
+	for i := 0; i < len(invitees); i++ {
+		expressionAttributeNames["#"+invitees[i]] = &invitees[i]
+	}
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	for i := 0; i < len(invitationsLeft); i++ {
+		var numberOfInvitationsLeftAtributeValue = dynamodb.AttributeValue{}
+		numberOfInvitationsLeftAtributeValue.SetN(invitationsLeft[i])
+		expressionValuePlaceholders[":"+invitees[i]] = &numberOfInvitationsLeftAtributeValue
+	}
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetN(partyID)
+	keyMap["partyID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Party")
+	// "SET #invitees.#facebookID1=:numberOfInvitationsLeft1, #invitees.#facebookID2=:numberOfInvitationsLeft2 ...."
+	updateExpression := "SET #invitees.#" + invitees[0] + ".#numberOfInvitationsLeft" + "=:" + invitees[0]
+	for i := 1; i < len(invitationsLeft); i++ {
+		updateExpression = updateExpression + ", " + "#invitees.#" + invitees[i] + ".#numberOfInvitationsLeft" + "=:" + invitees[i]
+	}
+	fmt.Println(updateExpression)
+	updateItemInput.UpdateExpression = &updateExpression
+	_, updateItemOutputErr := getter.DynamoDB.UpdateItem(&updateItemInput)
+
+	var dynamodbCall = DynamodbCall{}
+	if updateItemOutputErr != nil {
+		dynamodbCall.Error = "setNumberOfInvitationsLeftForInviteesHelper function: UpdateItem error (probable cause: this partyID isn't in the database). " + updateItemOutputErr.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
 	queryResult.Succeeded = true
 	return queryResult
 }
