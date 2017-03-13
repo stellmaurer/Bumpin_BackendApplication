@@ -2,19 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"math/rand"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
-
-func hello(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello!\n"))
-}
 
 func tables(w http.ResponseWriter, r *http.Request) {
 	data, err := getTables()
@@ -25,54 +19,6 @@ func tables(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(data)
-}
-
-func person(w http.ResponseWriter, r *http.Request) {
-	data, err := getPerson()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var person PersonData
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &person)
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(person)
-}
-
-func party(w http.ResponseWriter, r *http.Request) {
-	data, err := getParty()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var party PartyData
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &party)
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(party)
-}
-
-func bar(w http.ResponseWriter, r *http.Request) {
-	data, err := getBar()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var bar BarData
-	jsonErr := dynamodbattribute.UnmarshalMap(data, &bar)
-	if jsonErr != nil {
-		http.Error(w, jsonErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(bar)
 }
 
 func getTables() (string, error) {
@@ -89,78 +35,10 @@ func getTables() (string, error) {
 	return tables, nil
 }
 
-func getPerson() (map[string]*dynamodb.AttributeValue, error) {
-	type ItemGetter struct {
-		DynamoDB dynamodbiface.DynamoDBAPI
-	}
-	// Setup
-	var getter = new(ItemGetter)
-	var config = &aws.Config{Region: aws.String("us-west-2")}
-	sess, err := session.NewSession(config)
-	if err != nil {
-		fmt.Println("err")
-	}
-	var svc = dynamodb.New(sess)
-	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
-	// Finally
-	var getItemInput = dynamodb.GetItemInput{}
-	getItemInput.SetTableName("Person")
-	var attributeValue = dynamodb.AttributeValue{}
-	attributeValue.SetS("12345699033")
-	getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"facebookID": &attributeValue})
-	getItemOutput, err2 := getter.DynamoDB.GetItem(&getItemInput)
-	return getItemOutput.Item, err2
-}
-
-func getParty() (map[string]*dynamodb.AttributeValue, error) {
-	type ItemGetter struct {
-		DynamoDB dynamodbiface.DynamoDBAPI
-	}
-	// Setup
-	var getter = new(ItemGetter)
-	var config = &aws.Config{Region: aws.String("us-west-2")}
-	sess, err := session.NewSession(config)
-	if err != nil {
-		fmt.Println("err")
-	}
-	var svc = dynamodb.New(sess)
-	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
-	// Finally
-	var getItemInput = dynamodb.GetItemInput{}
-	getItemInput.SetTableName("Party")
-	var attributeValue = dynamodb.AttributeValue{}
-	attributeValue.SetN("1")
-	getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"partyID": &attributeValue})
-	getItemOutput, err2 := getter.DynamoDB.GetItem(&getItemInput)
-	return getItemOutput.Item, err2
-}
-
-func getBar() (map[string]*dynamodb.AttributeValue, error) {
-	type ItemGetter struct {
-		DynamoDB dynamodbiface.DynamoDBAPI
-	}
-	// Setup
-	var getter = new(ItemGetter)
-	var config = &aws.Config{Region: aws.String("us-west-2")}
-	sess, err := session.NewSession(config)
-	if err != nil {
-		fmt.Println("err")
-	}
-	var svc = dynamodb.New(sess)
-	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
-	// Finally
-	var getItemInput = dynamodb.GetItemInput{}
-	getItemInput.SetTableName("Bar")
-	var attributeValue = dynamodb.AttributeValue{}
-	attributeValue.SetN("1")
-	getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"barID": &attributeValue})
-	getItemOutput, err2 := getter.DynamoDB.GetItem(&getItemInput)
-	return getItemOutput.Item, err2
-}
-
 // PersonData : A person from the database in json format
 type PersonData struct {
 	PeopleBlockingTheirActivityFromMe map[string]bool `json:"peopleBlockingTheirActivityFromMe"`
+	PeopleToIgnore                    map[string]bool `json:"peopleToIgnore"`
 	FacebookID                        string          `json:"facebookID"`
 	InvitedTo                         map[string]bool `json:"invitedTo"`
 	IsMale                            bool            `json:"isMale"`
@@ -171,23 +49,24 @@ type PersonData struct {
 
 // PartyData : A party from the database in json format
 type PartyData struct {
-	AddressLine1        string              `json:"addressLine1"`
-	AddressLine2        string              `json:"addressLine2"`
-	City                string              `json:"city"`
-	Country             string              `json:"country"`
-	Details             string              `json:"details"`
-	DrinksProvided      bool                `json:"drinksProvided"`
-	EndTime             string              `json:"endTime"`
-	FeeForDrinks        bool                `json:"feeForDrinks"`
-	Hosts               map[string]*Host    `json:"hosts"`
-	Invitees            map[string]*Invitee `json:"invitees"`
-	Latitude            float64             `json:"latitude"`
-	Longitude           float64             `json:"longitude"`
-	PartyID             uint64              `json:"partyID"`
-	StartTime           string              `json:"startTime"`
-	StateProvinceRegion string              `json:"stateProvinceRegion"`
-	Title               string              `json:"title"`
-	ZipCode             uint32              `json:"zipCode"`
+	AddressLine1          string              `json:"addressLine1"`
+	AddressLine2          string              `json:"addressLine2"`
+	City                  string              `json:"city"`
+	Country               string              `json:"country"`
+	Details               string              `json:"details"`
+	DrinksProvided        bool                `json:"drinksProvided"`
+	EndTime               string              `json:"endTime"`
+	FeeForDrinks          bool                `json:"feeForDrinks"`
+	Hosts                 map[string]*Host    `json:"hosts"`
+	Invitees              map[string]*Invitee `json:"invitees"`
+	Latitude              float64             `json:"latitude"`
+	Longitude             float64             `json:"longitude"`
+	InvitesForNewInvitees uint16              `json:"invitesForNewInvitees"`
+	PartyID               uint64              `json:"partyID"`
+	StartTime             string              `json:"startTime"`
+	StateProvinceRegion   string              `json:"stateProvinceRegion"`
+	Title                 string              `json:"title"`
+	ZipCode               uint32              `json:"zipCode"`
 }
 
 // Host : A host of a party from the database in json format
@@ -207,21 +86,27 @@ type Invitee struct {
 
 // BarData : A bar from the database in json format
 type BarData struct {
-	AddressLine1        string               `json:"addressLine1"`
-	AddressLine2        string               `json:"addressLine2"`
-	Attendees           map[string]*Attendee `json:"attendees"`
-	BarID               uint64               `json:"barID"`
-	City                string               `json:"city"`
-	ClosingTime         string               `json:"closingTime"`
-	Country             string               `json:"country"`
-	Description         string               `json:"description"`
-	Hosts               map[string]*Host     `json:"hosts"`
-	LastCall            string               `json:"lastCall"`
-	Latitude            float64              `json:"latitude"`
-	Longitude           float64              `json:"longitude"`
-	Name                string               `json:"name"`
-	StateProvinceRegion string               `json:"stateProvinceRegion"`
-	ZipCode             uint32               `json:"zipCode"`
+	AddressLine1        string                    `json:"addressLine1"`
+	AddressLine2        string                    `json:"addressLine2"`
+	Attendees           map[string]*Attendee      `json:"attendees"`
+	BarID               uint64                    `json:"barID"`
+	City                string                    `json:"city"`
+	Country             string                    `json:"country"`
+	Details             string                    `json:"details"`
+	Hosts               map[string]*Host          `json:"hosts"`
+	Latitude            float64                   `json:"latitude"`
+	Longitude           float64                   `json:"longitude"`
+	Name                string                    `json:"name"`
+	PhoneNumber         string                    `json:"phoneNumber"`
+	Schedule            map[string]ScheduleForDay `json:"schedule"`
+	StateProvinceRegion string                    `json:"stateProvinceRegion"`
+	ZipCode             uint32                    `json:"zipCode"`
+}
+
+// ScheduleForDay : A particular day's schedule
+type ScheduleForDay struct {
+	Open     string `json:"open"`
+	LastCall string `json:"lastCall"`
 }
 
 // Attendee : An attendee to a bar in the database in json format
@@ -235,6 +120,57 @@ type Attendee struct {
 
 // QueryResult : The result of a query in json format
 type QueryResult struct {
-	Succeeded bool     `json:"succeeded"`
-	Errors    []string `json:"errors"`
+	Succeeded     bool           `json:"succeeded"`
+	Error         string         `json:"error"`
+	DynamodbCalls []DynamodbCall `json:"dynamodbCalls"`
+	People        []PersonData   `json:"people"`
+	Parties       []PartyData    `json:"parties"`
+	Bars          []BarData      `json:"bars"`
+}
+
+// DynamodbCall : The result of a dynamodb call.
+type DynamodbCall struct {
+	Succeeded bool   `json:"succeeded"`
+	Error     string `json:"error"`
+}
+
+func convertTwoQueryResultsToOne(queryResult1 QueryResult, queryResult2 QueryResult) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = queryResult1.Succeeded && queryResult2.Succeeded
+	queryResult.Error = queryResult1.Error + " " + queryResult2.Error
+	if queryResult.Succeeded == true {
+		queryResult.DynamodbCalls = nil
+	} else {
+		for i := 0; i < len(queryResult1.DynamodbCalls); i++ {
+			queryResult.DynamodbCalls = append(queryResult.DynamodbCalls, queryResult1.DynamodbCalls[i])
+		}
+		for i := 0; i < len(queryResult2.DynamodbCalls); i++ {
+			queryResult.DynamodbCalls = append(queryResult.DynamodbCalls, queryResult2.DynamodbCalls[i])
+		}
+	}
+	for i := 0; i < len(queryResult1.People); i++ {
+		queryResult.People = append(queryResult.People, queryResult1.People[i])
+	}
+	for i := 0; i < len(queryResult2.People); i++ {
+		queryResult.People = append(queryResult.People, queryResult2.People[i])
+	}
+
+	for i := 0; i < len(queryResult1.Parties); i++ {
+		queryResult.Parties = append(queryResult.Parties, queryResult1.Parties[i])
+	}
+	for i := 0; i < len(queryResult2.Parties); i++ {
+		queryResult.Parties = append(queryResult.Parties, queryResult2.Parties[i])
+	}
+
+	for i := 0; i < len(queryResult1.Bars); i++ {
+		queryResult.Bars = append(queryResult.Bars, queryResult1.Bars[i])
+	}
+	for i := 0; i < len(queryResult2.Parties); i++ {
+		queryResult.Bars = append(queryResult.Bars, queryResult2.Bars[i])
+	}
+	return queryResult
+}
+
+func getRandomID() uint64 {
+	return uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
 }
