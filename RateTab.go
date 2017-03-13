@@ -13,10 +13,11 @@ import (
 
 // Change my rating for a party
 func rateParty(w http.ResponseWriter, r *http.Request) {
-	partyID := r.URL.Query().Get("partyID")
-	facebookID := r.URL.Query().Get("facebookID")
-	rating := r.URL.Query().Get("rating")
-	timeLastRated := r.URL.Query().Get("timeLastRated")
+	r.ParseForm()
+	partyID := r.Form.Get("partyID")
+	facebookID := r.Form.Get("facebookID")
+	rating := r.Form.Get("rating")
+	timeLastRated := r.Form.Get("timeLastRated")
 	queryResult := ratePartyHelper(partyID, facebookID, rating, timeLastRated)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
@@ -24,13 +25,14 @@ func rateParty(w http.ResponseWriter, r *http.Request) {
 
 // Change my rating for a bar (add my info to the attendees map if need be)
 func rateBar(w http.ResponseWriter, r *http.Request) {
-	barID := r.URL.Query().Get("barID")
-	facebookID := r.URL.Query().Get("facebookID")
-	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
-	name := r.URL.Query().Get("name")
-	rating := r.URL.Query().Get("rating")
+	r.ParseForm()
+	barID := r.Form.Get("barID")
+	facebookID := r.Form.Get("facebookID")
+	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
+	name := r.Form.Get("name")
+	rating := r.Form.Get("rating")
 	status := "T"
-	timeLastRated := r.URL.Query().Get("timeLastRated")
+	timeLastRated := r.Form.Get("timeLastRated")
 	var queryResult = QueryResult{}
 	if isMaleConvErr != nil {
 		queryResult.Error = "rateBar function: isMale parameter issue. " + isMaleConvErr.Error()
@@ -96,8 +98,7 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
 	}
-	dynamodbCall.Succeeded = true
-	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult
 }
@@ -168,8 +169,7 @@ func rateBarHelper(barID string, facebookID string, isMale bool, name string, ra
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
 	}
-	dynamodbCall.Succeeded = true
-	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult
 }

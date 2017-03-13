@@ -45,9 +45,10 @@ func barsCloseToMe(w http.ResponseWriter, r *http.Request) {
 
 // Change my attendance status to a party
 func changeAttendanceStatusToParty(w http.ResponseWriter, r *http.Request) {
-	partyID := r.URL.Query().Get("partyID")
-	facebookID := r.URL.Query().Get("facebookID")
-	status := r.URL.Query().Get("status")
+	r.ParseForm()
+	partyID := r.Form.Get("partyID")
+	facebookID := r.Form.Get("facebookID")
+	status := r.Form.Get("status")
 	queryResult := changeAttendanceStatusToPartyHelper(partyID, facebookID, status)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
@@ -55,18 +56,19 @@ func changeAttendanceStatusToParty(w http.ResponseWriter, r *http.Request) {
 
 // Change my attendance status to a bar (add my info to the attendees map if need be)
 func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
-	barID := r.URL.Query().Get("barID")
-	facebookID := r.URL.Query().Get("facebookID")
-	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
-	name := r.URL.Query().Get("name")
-	rating := r.URL.Query().Get("rating")
-	status := r.URL.Query().Get("status")
-	timeLastRated := r.URL.Query().Get("timeLastRated")
+	r.ParseForm()
+	barID := r.Form.Get("barID")
+	facebookID := r.Form.Get("facebookID")
+	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
+	name := r.Form.Get("name")
+	rating := r.Form.Get("rating")
+	status := r.Form.Get("status")
+	timeLastRated := r.Form.Get("timeLastRated")
 
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	if isMaleConvErr != nil {
-		queryResult.Error = "changeAttendanceStatusToBar function: HTTP get request isMale parameter messed up. " + isMaleConvErr.Error()
+		queryResult.Error = "changeAttendanceStatusToBar function: HTTP post request isMale parameter messed up. " + isMaleConvErr.Error()
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
@@ -78,16 +80,17 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 // As an invitee to a party, invite another friend to
 //    the same party if you have invitations left.
 func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
-	partyID := r.URL.Query().Get("partyID")
-	myFacebookID := r.URL.Query().Get("myFacebookID")
-	friendFacebookID := r.URL.Query().Get("friendFacebookID")
-	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
-	name := r.URL.Query().Get("name")
+	r.ParseForm()
+	partyID := r.Form.Get("partyID")
+	myFacebookID := r.Form.Get("myFacebookID")
+	friendFacebookID := r.Form.Get("friendFacebookID")
+	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
+	name := r.Form.Get("name")
 
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	if isMaleConvErr != nil {
-		queryResult.Error = "inviteFriendToParty function: isMale parameter issue. " + isMaleConvErr.Error()
+		queryResult.Error = "inviteFriendToParty function: HTTP post request isMale parameter issue. " + isMaleConvErr.Error()
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
@@ -146,6 +149,7 @@ func myPartiesHelper(params []string) QueryResult {
 		return queryResult
 	}
 	queryResult.Parties = parties
+	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult
 }
@@ -212,6 +216,7 @@ func barsCloseToMeHelper(latitude float64, longitude float64) QueryResult {
 		return queryResult
 	}
 	queryResult.Bars = bars
+	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult
 }
@@ -265,8 +270,7 @@ func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, stat
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
 	}
-	dynamodbCall.Succeeded = true
-	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult
 }
@@ -336,8 +340,7 @@ func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale b
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
 	}
-	dynamodbCall.Succeeded = true
-	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult
 }
@@ -462,8 +465,7 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 		queryResult.DynamodbCalls[1] = dynamodbCall2
 		return queryResult
 	}
-	dynamodbCall2.Succeeded = true
-	queryResult.DynamodbCalls[1] = dynamodbCall2
+	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult
 }

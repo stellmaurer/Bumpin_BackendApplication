@@ -14,9 +14,10 @@ import (
 
 // Create or update a Person in the database
 func createOrUpdatePerson(w http.ResponseWriter, r *http.Request) {
-	facebookID := r.URL.Query().Get("facebookID")
-	isMale, isMaleConvErr := strconv.ParseBool(r.URL.Query().Get("isMale"))
-	name := r.URL.Query().Get("name")
+	r.ParseForm()
+	facebookID := r.Form.Get("facebookID")
+	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
+	name := r.Form.Get("name")
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	if isMaleConvErr != nil {
@@ -68,6 +69,7 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	var nameAttributeValue = dynamodb.AttributeValue{}
 	var partyHostForAttributeValue = dynamodb.AttributeValue{}
 	var peopleBlockingTheirActivityFromMeAttributeValue = dynamodb.AttributeValue{}
+	var peopleToIgnoreAttributeValue = dynamodb.AttributeValue{}
 	barHostForAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	facebookIDAttributeValue.SetS(facebookID)
 	invitedToAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
@@ -75,6 +77,7 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	nameAttributeValue.SetS(name)
 	partyHostForAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	peopleBlockingTheirActivityFromMeAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
+	peopleToIgnoreAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	expressionValues["barHostFor"] = &barHostForAttributeValue
 	expressionValues["facebookID"] = &facebookIDAttributeValue
 	expressionValues["invitedTo"] = &invitedToAttributeValue
@@ -82,6 +85,7 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	expressionValues["name"] = &nameAttributeValue
 	expressionValues["partyHostFor"] = &partyHostForAttributeValue
 	expressionValues["peopleBlockingTheirActivityFromMe"] = &peopleBlockingTheirActivityFromMeAttributeValue
+	expressionValues["peopleToIgnore"] = &peopleToIgnoreAttributeValue
 
 	var putItemInput = dynamodb.PutItemInput{}
 	putItemInput.SetConditionExpression("attribute_not_exists(#fbid)")
@@ -94,10 +98,10 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	if err2 != nil {
 		dynamodbCall.Error = "createPersonHelper function: PutItem error (this error should be seen if the person is already in the database. " + err2.Error()
 		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
 	} else {
-		dynamodbCall.Succeeded = true
+		queryResult.DynamodbCalls = nil
 	}
-	queryResult.DynamodbCalls[0] = dynamodbCall
 	queryResult.Succeeded = true
 	return queryResult
 }
@@ -155,8 +159,7 @@ func updatePersonHelper(facebookID string, isMale bool, name string) QueryResult
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
 	}
-	dynamodbCall.Succeeded = true
-	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult
 }
@@ -203,6 +206,7 @@ func getPersonHelper(facebookID string) QueryResult {
 	}
 	queryResult.People = make([]PersonData, 1)
 	queryResult.People[0] = person
+	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult
 }

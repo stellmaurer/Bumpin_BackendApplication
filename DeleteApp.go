@@ -12,7 +12,8 @@ import (
 
 // Delete a Person from the database
 func deletePerson(w http.ResponseWriter, r *http.Request) {
-	facebookID := r.URL.Query().Get("facebookID")
+	r.ParseForm()
+	facebookID := r.Form.Get("facebookID")
 	queryResult := deletePersonHelper(facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
@@ -53,8 +54,7 @@ func deletePersonHelper(facebookID string) QueryResult {
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
 	}
-	dynamodbCall.Succeeded = true
-	queryResult.DynamodbCalls[0] = dynamodbCall
+	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult
 }
