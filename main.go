@@ -2,15 +2,6 @@ package main
 
 import "net/http"
 
-/*
-
-  adding schedule map and phoneNumber
-  removing lastCall, closingTime, and openAt
-
-  this affects updateBar, createBar
-
-*/
-
 func main() {
 	/*
 		Starting queries - won't be used in app
