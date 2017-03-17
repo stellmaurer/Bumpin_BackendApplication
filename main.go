@@ -48,6 +48,14 @@ func main() {
 	http.HandleFunc("/updateBar", updateBar)
 	// curl http://localhost:8080/setNumberOfInvitationsLeftForInvitees -d "partyID=1&invitees=1111,3303,4000&invitationsLeft=2,3,4"
 	http.HandleFunc("/setNumberOfInvitationsLeftForInvitees", setNumberOfInvitationsLeftForInvitees)
+	// curl http://localhost:8080/askFriendToHostPartyWithYou -d "partyID=1&friendFacebookID=90&name=Yasuo%20Yi"
+	http.HandleFunc("/askFriendToHostPartyWithYou", askFriendToHostPartyWithYou)
+	// curl http://localhost:8080/askFriendToHostBarWithYou -d "barID=1&friendFacebookID=90&name=Yasuo%20Yi"
+	http.HandleFunc("/askFriendToHostBarWithYou", askFriendToHostBarWithYou)
+	// curl http://localhost:8080/removeFriendAsHostToParty -d "partyID=1&friendFacebookID=90"
+	http.HandleFunc("/removeFriendAsHostToParty", removeFriendAsHostToParty)
+	// curl http://localhost:8080/removeFriendAsHostToBar -d "barID=1&friendFacebookID=90"
+	http.HandleFunc("/removeFriendAsHostToBar", removeFriendAsHostToBar)
 
 	/*
 		Delete the app queries

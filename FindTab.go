@@ -347,8 +347,8 @@ func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale b
 
 func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebookID string, isMale bool, name string) QueryResult {
 	numberOfInvitationsLeft := "0"
-	rating := "N"
-	status := "I"
+	rating := "none"
+	status := "invited"
 	// constant in the past to make sure the invitee
 	//     can rate the party right away
 	timeLastRated := "01/01/2000 00:00:00"
