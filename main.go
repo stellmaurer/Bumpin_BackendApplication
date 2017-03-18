@@ -20,7 +20,7 @@ func main() {
 	http.HandleFunc("/changeAttendanceStatusToParty", changeAttendanceStatusToParty)
 	// curl http://localhost:8080/changeAttendanceStatusToBar -d "barID=1&facebookID=370&isMale=true&name=Steve&rating=N&status=G&timeLastRated=03/04/2017%2000:00:00"
 	http.HandleFunc("/changeAttendanceStatusToBar", changeAttendanceStatusToBar)
-	// curl http://localhost:8080/inviteFriendToParty -d "partyID=2&myFacebookID=995830&friendFacebookID=12345699033&isMale=false&name=Sarah%20Carlson"
+	// curl http://localhost:8080/inviteFriendToParty -d "partyID=1&myFacebookID=90&isHost=false&numberOfInvitesToGive=4&friendFacebookID=12345699033&isMale=false&name=Sarah%20Carlson"
 	http.HandleFunc("/inviteFriendToParty", inviteFriendToParty)
 
 	/*
@@ -52,10 +52,19 @@ func main() {
 	http.HandleFunc("/askFriendToHostPartyWithYou", askFriendToHostPartyWithYou)
 	// curl http://localhost:8080/askFriendToHostBarWithYou -d "barID=1&friendFacebookID=90&name=Yasuo%20Yi"
 	http.HandleFunc("/askFriendToHostBarWithYou", askFriendToHostBarWithYou)
-	// curl http://localhost:8080/removeFriendAsHostToParty -d "partyID=1&friendFacebookID=90"
-	http.HandleFunc("/removeFriendAsHostToParty", removeFriendAsHostToParty)
-	// curl http://localhost:8080/removeFriendAsHostToBar -d "barID=1&friendFacebookID=90"
-	http.HandleFunc("/removeFriendAsHostToBar", removeFriendAsHostToBar)
+	// curl http://localhost:8080/removePartyHost -d "partyID=1&facebookID=90"
+	http.HandleFunc("/removePartyHost", removePartyHost)
+	// curl http://localhost:8080/removeBarHost -d "barID=1&facebookID=90"
+	http.HandleFunc("/removeBarHost", removeBarHost)
+	// curl http://localhost:8080/acceptInvitationToHostParty -d "partyID=1&facebookID=90&isMale=true&name=Yasuo%20Yi"
+	http.HandleFunc("/acceptInvitationToHostParty", acceptInvitationToHostParty)
+	// curl http://localhost:8080/acceptInvitationToHostBar -d "barID=1&facebookID=90"
+	http.HandleFunc("/acceptInvitationToHostBar", acceptInvitationToHostBar)
+	// curl http://localhost:8080/declineInvitationToHostParty -d "partyID=1&facebookID=90"
+	http.HandleFunc("/declineInvitationToHostParty", declineInvitationToHostParty)
+	// curl http://localhost:8080/declineInvitationToHostBar -d "barID=1&facebookID=90"
+	http.HandleFunc("/declineInvitationToHostBar", declineInvitationToHostBar)
+	// curl http://localhost:8080/inviteFriend
 
 	/*
 		Delete the app queries

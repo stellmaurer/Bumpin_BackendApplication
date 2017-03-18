@@ -77,12 +77,14 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-// As an invitee to a party, invite another friend to
-//    the same party if you have invitations left.
+// Invite another friend to the party if you have invitations left.
+//		A host has unlimited invitations.
 func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	partyID := r.Form.Get("partyID")
 	myFacebookID := r.Form.Get("myFacebookID")
+	isHost, isHostErr := strconv.ParseBool(r.Form.Get("isHost"))
+	numberOfInvitesToGive := r.Form.Get("numberOfInvitesToGive")
 	friendFacebookID := r.Form.Get("friendFacebookID")
 	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
 	name := r.Form.Get("name")
@@ -94,7 +96,12 @@ func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult = inviteFriendToPartyHelper(partyID, myFacebookID, friendFacebookID, isMale, name)
+	if isHostErr != nil {
+		queryResult.Error = "inviteFriendToParty function: HTTP post request isHost parameter issue. " + isHostErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = inviteFriendToPartyHelper(partyID, myFacebookID, isHost, numberOfInvitesToGive, friendFacebookID, isMale, name)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -345,10 +352,21 @@ func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale b
 	return queryResult
 }
 
-func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebookID string, isMale bool, name string) QueryResult {
-	numberOfInvitationsLeft := "0"
+func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool, numberOfInvitesToGive string, friendFacebookID string, isMale bool, name string) QueryResult {
+	// invitees can't let their invitees give out their own invitations
+	var numberOfInvitationsLeft = "0"
+	if isHost == true {
+		// hosts can let their invitees give out their own invitations
+		numberOfInvitationsLeft = numberOfInvitesToGive
+	}
 	rating := "none"
-	status := "invited"
+	var status = "invited"
+	// myFacebookID will equal friendFacebookID if this function is being called
+	//		by the acceptInvitationToHostParty function, so logically we want
+	//		the invitation status of the new host to be "going".
+	if myFacebookID == friendFacebookID {
+		status = "going"
+	}
 	// constant in the past to make sure the invitee
 	//     can rate the party right away
 	timeLastRated := "01/01/2000 00:00:00"
@@ -374,9 +392,12 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 	var invitees = "invitees"
 	numberOfInvitationsLeftString := "numberOfInvitationsLeft"
 	expressionAttributeNames["#i"] = &invitees
-	expressionAttributeNames["#m"] = &myFacebookID
 	expressionAttributeNames["#f"] = &friendFacebookID
-	expressionAttributeNames["#n"] = &numberOfInvitationsLeftString
+	if isHost == false {
+		// These are only relevant if a non-host is inviting this person
+		expressionAttributeNames["#m"] = &myFacebookID
+		expressionAttributeNames["#n"] = &numberOfInvitationsLeftString
+	}
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 
 	inviteeMap := make(map[string]*dynamodb.AttributeValue)
@@ -404,10 +425,13 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 
 	var decrementAttribute = dynamodb.AttributeValue{}
 	decrementAttribute.SetN("-1")
-	expressionValuePlaceholders[":decrement"] = &decrementAttribute
 	var oneAttribute = dynamodb.AttributeValue{}
 	oneAttribute.SetN("1")
-	expressionValuePlaceholders[":one"] = &oneAttribute
+	if isHost == false {
+		// These are only relevant if a non-host is inviting this person
+		expressionValuePlaceholders[":decrement"] = &decrementAttribute
+		expressionValuePlaceholders[":one"] = &oneAttribute
+	}
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
@@ -415,12 +439,19 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, friendFacebo
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
-	updateItemInput.SetConditionExpression("attribute_not_exists(#i.#f) AND (#i.#m.#n >= :one)")
+	var conditionExpression = "attribute_not_exists(#i.#f) AND (#i.#m.#n >= :one)"
+	var updateExpression = "SET #i.#f=:invitee ADD #i.#m.#n :decrement"
+	if isHost == true {
+		// If this is a host inviting someone, ignore the number of invites they
+		//		have left, because they get unlimited invitations as a host.
+		conditionExpression = "attribute_not_exists(#i.#f)"
+		updateExpression = "SET #i.#f=:invitee"
+	}
+	updateItemInput.SetConditionExpression(conditionExpression)
 	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
 	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
 	updateItemInput.SetKey(keyMap)
 	updateItemInput.SetTableName("Party")
-	updateExpression := "SET #i.#f=:invitee ADD #i.#m.#n :decrement"
 	updateItemInput.UpdateExpression = &updateExpression
 	_, updateItemOutputErr1 := getter.DynamoDB.UpdateItem(&updateItemInput)
 

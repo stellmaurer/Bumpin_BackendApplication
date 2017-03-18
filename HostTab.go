@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -275,21 +274,70 @@ func askFriendToHostBarWithYou(w http.ResponseWriter, r *http.Request) {
 }
 
 // Remove a friend from hosting the Party with you
-func removeFriendAsHostToParty(w http.ResponseWriter, r *http.Request) {
+func removePartyHost(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	partyID := r.Form.Get("partyID")
-	friendFacebookID := r.Form.Get("friendFacebookID")
-	queryResult := removeFriendAsHostToPartyHelper(partyID, friendFacebookID)
+	facebookID := r.Form.Get("facebookID")
+	queryResult := removePartyHostHelper(partyID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-// Remove a friend from hosting the Party with you
-func removeFriendAsHostToBar(w http.ResponseWriter, r *http.Request) {
+// Remove a host of a Bar
+func removeBarHost(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	barID := r.Form.Get("barID")
-	friendFacebookID := r.Form.Get("friendFacebookID")
-	queryResult := removeFriendAsHostToBarHelper(barID, friendFacebookID)
+	facebookID := r.Form.Get("facebookID")
+	queryResult := removeBarHostHelper(barID, facebookID)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Accept your friend's invitation to become a host of the Party
+func acceptInvitationToHostParty(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	partyID := r.Form.Get("partyID")
+	facebookID := r.Form.Get("facebookID")
+	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
+	name := r.Form.Get("name")
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	if isMaleConvErr != nil {
+		queryResult.Error = "acceptInvitationToHostParty function: HTTP post request isMale parameter issue. " + isMaleConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = acceptInvitationToHostPartyHelper(partyID, facebookID, isMale, name)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Accept your friend's invitation to become a host of the Bar
+func acceptInvitationToHostBar(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	barID := r.Form.Get("barID")
+	facebookID := r.Form.Get("facebookID")
+	queryResult := acceptInvitationToHostBarHelper(barID, facebookID)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Decline your friend's invitation to become a host of the Party
+func declineInvitationToHostParty(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	partyID := r.Form.Get("partyID")
+	facebookID := r.Form.Get("facebookID")
+	queryResult := declineInvitationToHostPartyHelper(partyID, facebookID)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Decline your friend's invitation to become a host of the Bar
+func declineInvitationToHostBar(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	barID := r.Form.Get("barID")
+	facebookID := r.Form.Get("facebookID")
+	queryResult := declineInvitationToHostBarHelper(barID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -1436,7 +1484,6 @@ func setNumberOfInvitationsLeftForInviteesHelper(partyID string, invitees []stri
 	for i := 1; i < len(invitationsLeft); i++ {
 		updateExpression = updateExpression + ", " + "#invitees.#" + invitees[i] + ".#numberOfInvitationsLeft" + "=:" + invitees[i]
 	}
-	fmt.Println(updateExpression)
 	updateItemInput.UpdateExpression = &updateExpression
 	_, updateItemOutputErr := getter.DynamoDB.UpdateItem(&updateItemInput)
 
@@ -1647,7 +1694,7 @@ func askFriendToHostBarWithYouHelper(barID string, friendFacebookID string, name
 	return queryResult
 }
 
-func removeFriendAsHostToPartyHelper(partyID string, friendFacebookID string) QueryResult {
+func removePartyHostHelper(partyID string, facebookID string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
@@ -1659,7 +1706,7 @@ func removeFriendAsHostToPartyHelper(partyID string, friendFacebookID string) Qu
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		queryResult.Error = "removeFriendAsHostToPartyHelper function: session creation error. " + err.Error()
+		queryResult.Error = "removePartyHostHelper function: session creation error. " + err.Error()
 		return queryResult
 	}
 	var svc = dynamodb.New(sess)
@@ -1668,7 +1715,7 @@ func removeFriendAsHostToPartyHelper(partyID string, friendFacebookID string) Qu
 	expressionAttributeNames := make(map[string]*string)
 	hosts := "hosts"
 	expressionAttributeNames["#hosts"] = &hosts
-	expressionAttributeNames["#friendFacebookID"] = &friendFacebookID
+	expressionAttributeNames["#facebookID"] = &facebookID
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
@@ -1679,14 +1726,14 @@ func removeFriendAsHostToPartyHelper(partyID string, friendFacebookID string) Qu
 	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
 	updateItemInput.SetKey(keyMap)
 	updateItemInput.SetTableName("Party")
-	updateExpression := "REMOVE #hosts.#friendFacebookID"
+	updateExpression := "REMOVE #hosts.#facebookID"
 	updateItemInput.UpdateExpression = &updateExpression
 
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
 	var dynamodbCall = DynamodbCall{}
 	queryResult.DynamodbCalls[0] = dynamodbCall
 	if err2 != nil {
-		dynamodbCall.Error = "removeFriendAsHostToPartyHelper function: Problem removing host from Party: " + err2.Error()
+		dynamodbCall.Error = "removePartyHostHelper function: Problem removing host from Party: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
@@ -1701,7 +1748,7 @@ func removeFriendAsHostToPartyHelper(partyID string, friendFacebookID string) Qu
 
 	keyMap2 := make(map[string]*dynamodb.AttributeValue)
 	var key2 = dynamodb.AttributeValue{}
-	key2.SetS(friendFacebookID)
+	key2.SetS(facebookID)
 	keyMap2["facebookID"] = &key2
 
 	var updateItemInput2 = dynamodb.UpdateItemInput{}
@@ -1713,7 +1760,7 @@ func removeFriendAsHostToPartyHelper(partyID string, friendFacebookID string) Qu
 	_, err3 := getter.DynamoDB.UpdateItem(&updateItemInput2)
 	var dynamodbCall2 = DynamodbCall{}
 	if err3 != nil {
-		dynamodbCall2.Error = "removeFriendAsHostToPartyHelper function: Problem removing partyID from Person's partyHostsFor map. " + err3.Error()
+		dynamodbCall2.Error = "removePartyHostHelper function: Problem removing partyID from Person's partyHostsFor map. " + err3.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
 		return queryResult
@@ -1723,7 +1770,7 @@ func removeFriendAsHostToPartyHelper(partyID string, friendFacebookID string) Qu
 	return queryResult
 }
 
-func removeFriendAsHostToBarHelper(barID string, friendFacebookID string) QueryResult {
+func removeBarHostHelper(barID string, facebookID string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
@@ -1735,7 +1782,7 @@ func removeFriendAsHostToBarHelper(barID string, friendFacebookID string) QueryR
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		queryResult.Error = "removeFriendAsHostToBarHelper function: session creation error. " + err.Error()
+		queryResult.Error = "removeBarHostHelper function: session creation error. " + err.Error()
 		return queryResult
 	}
 	var svc = dynamodb.New(sess)
@@ -1744,7 +1791,7 @@ func removeFriendAsHostToBarHelper(barID string, friendFacebookID string) QueryR
 	expressionAttributeNames := make(map[string]*string)
 	var hosts = "hosts"
 	expressionAttributeNames["#hosts"] = &hosts
-	expressionAttributeNames["#friendFacebookID"] = &friendFacebookID
+	expressionAttributeNames["#facebookID"] = &facebookID
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
@@ -1755,21 +1802,21 @@ func removeFriendAsHostToBarHelper(barID string, friendFacebookID string) QueryR
 	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
 	updateItemInput.SetKey(keyMap)
 	updateItemInput.SetTableName("Bar")
-	updateExpression := "REMOVE #hosts.#friendFacebookID"
+	updateExpression := "REMOVE #hosts.#facebookID"
 	updateItemInput.UpdateExpression = &updateExpression
 
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
 	var dynamodbCall = DynamodbCall{}
 	queryResult.DynamodbCalls[0] = dynamodbCall
 	if err2 != nil {
-		dynamodbCall.Error = "removeFriendAsHostToBarHelper function: Problem removing host from Bar: " + err2.Error()
+		dynamodbCall.Error = "removeBarHostHelper function: Problem removing host from Bar: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
 	}
 
-	// Now we need to update the friend's Person information to let them
-	//     know that their friend is asking them to be a host of the Party.
+	// Now we need to update the Person's information to let them
+	//     know that they are no longer a host of the Bar.
 	expressionAttributeNames2 := make(map[string]*string)
 	var barHostFor = "barHostFor"
 	expressionAttributeNames2["#barHostFor"] = &barHostFor
@@ -1777,7 +1824,7 @@ func removeFriendAsHostToBarHelper(barID string, friendFacebookID string) QueryR
 
 	keyMap2 := make(map[string]*dynamodb.AttributeValue)
 	var key2 = dynamodb.AttributeValue{}
-	key2.SetS(friendFacebookID)
+	key2.SetS(facebookID)
 	keyMap2["facebookID"] = &key2
 
 	var updateItemInput2 = dynamodb.UpdateItemInput{}
@@ -1789,7 +1836,366 @@ func removeFriendAsHostToBarHelper(barID string, friendFacebookID string) QueryR
 	_, err3 := getter.DynamoDB.UpdateItem(&updateItemInput2)
 	var dynamodbCall2 = DynamodbCall{}
 	if err3 != nil {
-		dynamodbCall2.Error = "removeFriendAsHostToBarHelper function: Problem removing barID from Person's barHostsFor map. " + err3.Error()
+		dynamodbCall2.Error = "removeBarHostHelper function: Problem removing barID from Person's barHostsFor map. " + err3.Error()
+		dynamodbCall2.Succeeded = false
+		queryResult.DynamodbCalls[1] = dynamodbCall2
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+// Accept the invitation to host the Party and then invite this Person to the Party.
+func acceptInvitationToHostPartyHelper(partyID string, facebookID string, isMale bool, name string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "acceptInvitationToHostPartyHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var hosts = "hosts"
+	var status = "status"
+	expressionAttributeNames["#hosts"] = &hosts
+	expressionAttributeNames["#facebookID"] = &facebookID
+	expressionAttributeNames["#status"] = &status
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var statusAttribute = dynamodb.AttributeValue{}
+	statusAttribute.SetS("accepted")
+	expressionValuePlaceholders[":status"] = &statusAttribute
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetN(partyID)
+	keyMap["partyID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Party")
+	updateExpression := "SET #hosts.#facebookID.#status=:status"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	if err2 != nil {
+		dynamodbCall.Error = "acceptInvitationToHostPartyHelper function: Problem changing host status in Party table: " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+
+	// Now we need to update the Person's information to let them
+	//     know that they are now hosting this Party.
+	expressionAttributeNames2 := make(map[string]*string)
+	var partyHostFor = "partyHostFor"
+	expressionAttributeNames2["#partyHostFor"] = &partyHostFor
+	expressionAttributeNames2["#partyID"] = &partyID
+	expressionValuePlaceholders2 := make(map[string]*dynamodb.AttributeValue)
+	var partyIDBoolAttribute = dynamodb.AttributeValue{}
+	partyIDBoolAttribute.SetBOOL(true)
+	expressionValuePlaceholders2[":bool"] = &partyIDBoolAttribute
+
+	keyMap2 := make(map[string]*dynamodb.AttributeValue)
+	var key2 = dynamodb.AttributeValue{}
+	key2.SetS(facebookID)
+	keyMap2["facebookID"] = &key2
+
+	var updateItemInput2 = dynamodb.UpdateItemInput{}
+	updateItemInput2.SetExpressionAttributeNames(expressionAttributeNames2)
+	updateItemInput2.SetExpressionAttributeValues(expressionValuePlaceholders2)
+	updateItemInput2.SetKey(keyMap2)
+	updateItemInput2.SetTableName("Person")
+	updateExpression2 := "SET #partyHostFor.#partyID=:bool"
+	updateItemInput2.UpdateExpression = &updateExpression2
+	_, err3 := getter.DynamoDB.UpdateItem(&updateItemInput2)
+
+	var dynamodbCall2 = DynamodbCall{}
+	if err3 != nil {
+		dynamodbCall2.Error = "acceptInvitationToHostPartyHelper function: Problem changing Person's host status for partyHostsFor map. " + err3.Error()
+		dynamodbCall2.Succeeded = false
+		queryResult.DynamodbCalls[1] = dynamodbCall2
+		return queryResult
+	}
+
+	inviteFriendQueryResult := inviteFriendToPartyHelper(partyID, facebookID, true, "0", facebookID, isMale, name)
+	if inviteFriendQueryResult.Succeeded == false {
+		return inviteFriendQueryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+// Accept the invitation to host the Bar
+func acceptInvitationToHostBarHelper(barID string, facebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "acceptInvitationToHostBarHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var hosts = "hosts"
+	var status = "status"
+	expressionAttributeNames["#hosts"] = &hosts
+	expressionAttributeNames["#facebookID"] = &facebookID
+	expressionAttributeNames["#status"] = &status
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var statusAttribute = dynamodb.AttributeValue{}
+	statusAttribute.SetS("accepted")
+	expressionValuePlaceholders[":status"] = &statusAttribute
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetN(barID)
+	keyMap["barID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Bar")
+	var updateExpression = "SET #hosts.#facebookID.#status=:status"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	if err2 != nil {
+		dynamodbCall.Error = "acceptInvitationToHostBarHelper function: Problem changing host status in Bar table: " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+
+	// Now we need to update the Person's information to let them
+	//     know that they are now hosting this Bar.
+	expressionAttributeNames2 := make(map[string]*string)
+	var barHostFor = "barHostFor"
+	expressionAttributeNames2["#barHostFor"] = &barHostFor
+	expressionAttributeNames2["#barID"] = &barID
+	expressionValuePlaceholders2 := make(map[string]*dynamodb.AttributeValue)
+	var barIDBoolAttribute = dynamodb.AttributeValue{}
+	barIDBoolAttribute.SetBOOL(true)
+	expressionValuePlaceholders2[":bool"] = &barIDBoolAttribute
+
+	keyMap2 := make(map[string]*dynamodb.AttributeValue)
+	var key2 = dynamodb.AttributeValue{}
+	key2.SetS(facebookID)
+	keyMap2["facebookID"] = &key2
+
+	var updateItemInput2 = dynamodb.UpdateItemInput{}
+	updateItemInput2.SetExpressionAttributeNames(expressionAttributeNames2)
+	updateItemInput2.SetExpressionAttributeValues(expressionValuePlaceholders2)
+	updateItemInput2.SetKey(keyMap2)
+	updateItemInput2.SetTableName("Person")
+	var updateExpression2 = "SET #barHostFor.#barID=:bool"
+	updateItemInput2.UpdateExpression = &updateExpression2
+	_, err3 := getter.DynamoDB.UpdateItem(&updateItemInput2)
+
+	var dynamodbCall2 = DynamodbCall{}
+	if err3 != nil {
+		dynamodbCall2.Error = "acceptInvitationToHostBarHelper function: Problem changing Person's host status for barHostsFor map. " + err3.Error()
+		dynamodbCall2.Succeeded = false
+		queryResult.DynamodbCalls[1] = dynamodbCall2
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+// Decline the invitation to host the Party.
+func declineInvitationToHostPartyHelper(partyID string, facebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "declineInvitationToHostPartyHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var hosts = "hosts"
+	var status = "status"
+	expressionAttributeNames["#hosts"] = &hosts
+	expressionAttributeNames["#facebookID"] = &facebookID
+	expressionAttributeNames["#status"] = &status
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var statusAttribute = dynamodb.AttributeValue{}
+	statusAttribute.SetS("declined")
+	expressionValuePlaceholders[":status"] = &statusAttribute
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetN(partyID)
+	keyMap["partyID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Party")
+	updateExpression := "SET #hosts.#facebookID.#status=:status"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	if err2 != nil {
+		dynamodbCall.Error = "declineInvitationToHostPartyHelper function: Problem changing host status in Party table: " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+
+	// Now we need to update the Person's information to let them
+	//     know that they aren't hosting this Party.
+	expressionAttributeNames2 := make(map[string]*string)
+	var partyHostFor = "partyHostFor"
+	expressionAttributeNames2["#partyHostFor"] = &partyHostFor
+	expressionAttributeNames2["#partyID"] = &partyID
+
+	keyMap2 := make(map[string]*dynamodb.AttributeValue)
+	var key2 = dynamodb.AttributeValue{}
+	key2.SetS(facebookID)
+	keyMap2["facebookID"] = &key2
+
+	var updateItemInput2 = dynamodb.UpdateItemInput{}
+	updateItemInput2.SetExpressionAttributeNames(expressionAttributeNames2)
+	updateItemInput2.SetKey(keyMap2)
+	updateItemInput2.SetTableName("Person")
+	updateExpression2 := "REMOVE #partyHostFor.#partyID"
+	updateItemInput2.UpdateExpression = &updateExpression2
+	_, err3 := getter.DynamoDB.UpdateItem(&updateItemInput2)
+
+	var dynamodbCall2 = DynamodbCall{}
+	if err3 != nil {
+		dynamodbCall2.Error = "declineInvitationToHostPartyHelper function: Problem removing party in partyHostsFor map in Bar table. " + err3.Error()
+		dynamodbCall2.Succeeded = false
+		queryResult.DynamodbCalls[1] = dynamodbCall2
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+// Decline the invitation to host the Bar
+func declineInvitationToHostBarHelper(barID string, facebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "declineInvitationToHostBarHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var hosts = "hosts"
+	var status = "status"
+	expressionAttributeNames["#hosts"] = &hosts
+	expressionAttributeNames["#facebookID"] = &facebookID
+	expressionAttributeNames["#status"] = &status
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var statusAttribute = dynamodb.AttributeValue{}
+	statusAttribute.SetS("declined")
+	expressionValuePlaceholders[":status"] = &statusAttribute
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetN(barID)
+	keyMap["barID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Bar")
+	var updateExpression = "SET #hosts.#facebookID.#status=:status"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	if err2 != nil {
+		dynamodbCall.Error = "declineInvitationToHostBarHelper function: Problem changing host status in Bar table: " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+
+	// Now we need to update the Person's information to let them
+	//     know that they aren't hosting this Bar.
+	expressionAttributeNames2 := make(map[string]*string)
+	var barHostFor = "barHostFor"
+	expressionAttributeNames2["#barHostFor"] = &barHostFor
+	expressionAttributeNames2["#barID"] = &barID
+
+	keyMap2 := make(map[string]*dynamodb.AttributeValue)
+	var key2 = dynamodb.AttributeValue{}
+	key2.SetS(facebookID)
+	keyMap2["facebookID"] = &key2
+
+	var updateItemInput2 = dynamodb.UpdateItemInput{}
+	updateItemInput2.SetExpressionAttributeNames(expressionAttributeNames2)
+	updateItemInput2.SetKey(keyMap2)
+	updateItemInput2.SetTableName("Person")
+	var updateExpression2 = "REMOVE #barHostFor.#barID"
+	updateItemInput2.UpdateExpression = &updateExpression2
+	_, err3 := getter.DynamoDB.UpdateItem(&updateItemInput2)
+
+	var dynamodbCall2 = DynamodbCall{}
+	if err3 != nil {
+		dynamodbCall2.Error = "declineInvitationToHostBarHelper function: Problem removing bar in barHostsFor map in Person table. " + err3.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
 		return queryResult
