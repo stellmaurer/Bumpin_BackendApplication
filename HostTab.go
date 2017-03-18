@@ -342,6 +342,86 @@ func declineInvitationToHostBar(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queryResult)
 }
 
+func updateInvitationsListAsHostForParty(w http.ResponseWriter, r *http.Request) {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	r.ParseForm()
+	var partyID = r.Form.Get("partyID")
+	// this is a random fbid since it doesn't matter what fbid we send in this case
+	var myFacebookID = "-1"
+	var isHost = true
+	var numberOfInvitesToGive = r.Form.Get("numberOfInvitesToGive")
+	var additionsListFacebookID []string
+	var additionsListIsMaleString []string
+	var additionsListName []string
+	var removalsListFacebookID []string
+
+	if r.Form.Get("additionsListFacebookID") != "" {
+		additionsListFacebookID = strings.Split(r.Form.Get("additionsListFacebookID"), ",")
+	}
+	if r.Form.Get("additionsListIsMale") != "" {
+		additionsListIsMaleString = strings.Split(r.Form.Get("additionsListIsMale"), ",")
+	}
+	// convert IsMale string array to IsMale bool array
+	var additionsListIsMale = make([]bool, len(additionsListIsMaleString))
+	for i := 0; i < len(additionsListIsMaleString); i++ {
+		isMale, isMaleConvErr := strconv.ParseBool(additionsListIsMaleString[i])
+		if isMaleConvErr != nil {
+			queryResult.Error = "updateInvitationsListAsHostForParty function: HTTP post request isMale parameter issue. " + isMaleConvErr.Error()
+			json.NewEncoder(w).Encode(queryResult)
+			return
+		}
+		additionsListIsMale[i] = isMale
+	}
+	if r.Form.Get("additionsListName") != "" {
+		additionsListName = strings.Split(r.Form.Get("additionsListName"), ",")
+	}
+	if r.Form.Get("removalsListFacebookID") != "" {
+		removalsListFacebookID = strings.Split(r.Form.Get("removalsListFacebookID"), ",")
+	}
+	if (len(additionsListFacebookID) != len(additionsListIsMale)) || (len(additionsListIsMale) != len(additionsListName)) {
+		queryResult.Error = "updateInvitationsListAsHostForParty function: HTTP post request parameter issues (additions lists): facebookID array, isMale array, and name array aren't the same length."
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	var queryResult1 = QueryResult{}
+	queryResult1.Succeeded = true
+	var inviteFriendQueryResult = QueryResult{}
+	for i := 0; i < len(additionsListFacebookID); i++ {
+		inviteFriendQueryResult = inviteFriendToPartyHelper(partyID, myFacebookID, isHost, numberOfInvitesToGive, additionsListFacebookID[i], additionsListIsMale[i], additionsListName[i])
+		if inviteFriendQueryResult.Succeeded == false {
+			queryResult1 = convertTwoQueryResultsToOne(inviteFriendQueryResult, queryResult1)
+		}
+	}
+	var queryResult2 = QueryResult{}
+	queryResult2.Succeeded = true
+	var removeFriendQueryResult = QueryResult{}
+	for i := 0; i < len(removalsListFacebookID); i++ {
+		removeFriendQueryResult = removeFriendFromPartyHelper(partyID, removalsListFacebookID[i])
+		if removeFriendQueryResult.Succeeded == false {
+			queryResult2 = convertTwoQueryResultsToOne(removeFriendQueryResult, queryResult2)
+		}
+	}
+
+	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Find all of the bars for barIDs passed in.
+func getBars(w http.ResponseWriter, r *http.Request) {
+	var queryResult = QueryResult{}
+	if r.URL.Query().Get("barIDs") == "" {
+		queryResult.Succeeded = true
+		queryResult.DynamodbCalls = nil
+	} else {
+		barIDs := strings.Split(r.URL.Query().Get("barIDs"), ",")
+		queryResult = getBarsHelper(barIDs)
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
 func createBarHelper(facebookID string, isMale bool, nameOfCreator string, addressLine1 string, addressLine2 string, barID string, city string, country string, details string, latitude string, longitude string, name string, phoneNumber string, schedule map[string]ScheduleForDay, stateProvinceRegion string, zipCode string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
@@ -2200,6 +2280,60 @@ func declineInvitationToHostBarHelper(barID string, facebookID string) QueryResu
 		queryResult.DynamodbCalls[1] = dynamodbCall2
 		return queryResult
 	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func getBarsHelper(barIDs []string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "getBarsHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	var batchGetItemInput = dynamodb.BatchGetItemInput{}
+	attributesAndValues := make([]map[string]*dynamodb.AttributeValue, len(barIDs))
+	for i := 0; i < len(barIDs); i++ {
+		var attributeValue = dynamodb.AttributeValue{}
+		attributeValue.SetN(barIDs[i])
+		attributesAndValues[i] = make(map[string]*dynamodb.AttributeValue)
+		attributesAndValues[i]["barID"] = &attributeValue
+	}
+	var keysAndAttributes dynamodb.KeysAndAttributes
+	keysAndAttributes.SetKeys(attributesAndValues)
+	requestedItems := make(map[string]*dynamodb.KeysAndAttributes)
+	requestedItems["Bar"] = &keysAndAttributes
+	batchGetItemInput.SetRequestItems(requestedItems)
+	batchGetItemOutput, err2 := getter.DynamoDB.BatchGetItem(&batchGetItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "getBarsHelper function: BatchGetItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	data := batchGetItemOutput.Responses
+	bars := make([]BarData, len(barIDs))
+	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data["Bar"], &bars)
+	if jsonErr != nil {
+		queryResult.Error = "getBarsHelper function: UnmarshalListOfMaps error. " + jsonErr.Error()
+		return queryResult
+	}
+	queryResult.Bars = bars
 	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult

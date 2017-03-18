@@ -12,8 +12,8 @@ func main() {
 	/*
 		Find tab queries
 	*/
-	// curl "http://localhost:8080/myParties?partyID=1,2"
-	http.HandleFunc("/myParties", myParties)
+	// curl "http://localhost:8080/myParties?partyIDs=1,2"
+	http.HandleFunc("/myParties", getParties)
 	// curl "http://localhost:8080/barsCloseToMe?latitude=43&longitude=-89"
 	http.HandleFunc("/barsCloseToMe", barsCloseToMe)
 	// curl http://localhost:8080/changeAttendanceStatusToParty -d "partyID=1&facebookID=3303&status=M"
@@ -64,7 +64,12 @@ func main() {
 	http.HandleFunc("/declineInvitationToHostParty", declineInvitationToHostParty)
 	// curl http://localhost:8080/declineInvitationToHostBar -d "barID=1&facebookID=90"
 	http.HandleFunc("/declineInvitationToHostBar", declineInvitationToHostBar)
-	// curl http://localhost:8080/inviteFriend
+	// curl http://localhost:8080/updateInvitationsListAsHostForParty -d "partyID=12258969221770119542&numberOfInvitesToGive=5&additionsListFacebookID=90,12345699033&additionsListIsMale=true,false&additionsListName=Yasuo%20Yi,Sarah%20Carlson&removalsListFacebookID=1222222,7742229197"
+	http.HandleFunc("/updateInvitationsListAsHostForParty", updateInvitationsListAsHostForParty)
+	// curl "http://localhost:8080/getPartiesImHosting?partyIDs=1,12258969221770119542"
+	http.HandleFunc("/getPartiesImHosting", getParties)
+	// curl "http://localhost:8080/getBarsImHosting?barIDs=1,2"
+	http.HandleFunc("/getBarsImHosting", getBars)
 
 	/*
 		Delete the app queries
