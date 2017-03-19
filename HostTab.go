@@ -748,10 +748,13 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	hostMap := make(map[string]*dynamodb.AttributeValue)
 	var host = dynamodb.AttributeValue{}
 	var isMainHostAttribute = dynamodb.AttributeValue{}
-	isMainHostAttribute.SetBOOL(isMale)
+	var hostStatusAttribute = dynamodb.AttributeValue{}
+	isMainHostAttribute.SetBOOL(true)
 	nameAttribute.SetS(name)
+	hostStatusAttribute.SetS("accepted")
 	hostMap["isMainHost"] = &isMainHostAttribute
 	hostMap["name"] = &nameAttribute
+	hostMap["status"] = &hostStatusAttribute
 	host.SetM(hostMap)
 	hostsMap[facebookID] = &host
 	hosts.SetM(hostsMap)

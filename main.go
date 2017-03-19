@@ -4,6 +4,27 @@ import "net/http"
 
 func main() {
 	/*
+		ticker := time.NewTicker(time.Second * 5)
+		go func() {
+			for t := range ticker.C {
+				fmt.Println("Tick at", t)
+			}
+		}()
+	*/
+	//curl http://localhost:8080/createParty -d "facebookID=30&isMale=true&name=Zander%20Dunn&addressLine1=201%20River%20St&city=River%20Hills&country=United%20States&drinksProvided=true&endTime=2015-01-19T00:00:00Z&feeForDrinks=false&invitesForNewInvitees=1&latitude=-59&longitude=42&startTime=2015-01-18T00:00:00Z&stateProvinceRegion=Wisconsin&title=Baseball%20Party&zipCode=53215"
+	//curl http://localhost:8080/askFriendToHostPartyWithYou -d "partyID=11154013587666973726&friendFacebookID=010101&name=Gerrard%20Holler"
+	//curl http://localhost:8080/inviteFriendToParty -d "partyID=11154013587666973726&myFacebookID=30&isHost=true&numberOfInvitesToGive=4&friendFacebookID=1222222&isMale=false&name=Eva%20Catarina"
+
+	//curl http://localhost:8080/createParty -d "facebookID=12345699033&isMale=false&name=Sarah%20Carlson&addressLine1=201%20University%20Ave&city=Madison&country=United%20States&drinksProvided=true&endTime=2017-03-16T09:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=-50&longitude=50&startTime=2017-03-16T04:30:00Z&stateProvinceRegion=Wisconsin&title=PartyToEndItAll&zipCode=53705"
+	//curl http://localhost:8080/askFriendToHostPartyWithYou -d "partyID=7833179233048568588&friendFacebookID=010101&name=Gerrard%20Holler"
+	//curl http://localhost:8080/inviteFriendToParty -d "partyID=7833179233048568588&myFacebookID=30&isHost=true&numberOfInvitesToGive=4&friendFacebookID=1222222&isMale=false&name=Eva%20Catarina"
+	/*
+		Cleanup of parties that have ended
+	*/
+	// curl http://localhost:8080/deletePartiesThatHaveExpired
+	http.HandleFunc("/deletePartiesThatHaveExpired", deletePartiesThatHaveExpired)
+
+	/*
 		Starting queries - won't be used in app
 	*/
 	// curl "http://localhost:8080/tables"
