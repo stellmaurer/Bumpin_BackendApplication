@@ -17,8 +17,9 @@ func rateParty(w http.ResponseWriter, r *http.Request) {
 	partyID := r.Form.Get("partyID")
 	facebookID := r.Form.Get("facebookID")
 	rating := r.Form.Get("rating")
+	status := "at party"
 	timeLastRated := r.Form.Get("timeLastRated")
-	queryResult := ratePartyHelper(partyID, facebookID, rating, timeLastRated)
+	queryResult := ratePartyHelper(partyID, facebookID, rating, status, timeLastRated)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -31,7 +32,7 @@ func rateBar(w http.ResponseWriter, r *http.Request) {
 	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
 	name := r.Form.Get("name")
 	rating := r.Form.Get("rating")
-	status := "T"
+	status := "at bar"
 	timeLastRated := r.Form.Get("timeLastRated")
 	var queryResult = QueryResult{}
 	if isMaleConvErr != nil {
@@ -44,7 +45,7 @@ func rateBar(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-func ratePartyHelper(partyID string, facebookID string, rating string, timeLastRated string) QueryResult {
+func ratePartyHelper(partyID string, facebookID string, rating string, status string, timeLastRated string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -65,15 +66,20 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 	expressionAttributeNames := make(map[string]*string)
 	var invitees = "invitees"
 	stringRating := "rating"
+	stringStatus := "status"
 	stringTimeLastRated := "timeLastRated"
 	expressionAttributeNames["#i"] = &invitees
 	expressionAttributeNames["#f"] = &facebookID
 	expressionAttributeNames["#r"] = &stringRating
+	expressionAttributeNames["#s"] = &stringStatus
 	expressionAttributeNames["#t"] = &stringTimeLastRated
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 	var ratingAttributeValue = dynamodb.AttributeValue{}
 	ratingAttributeValue.SetS(rating)
 	expressionValuePlaceholders[":rating"] = &ratingAttributeValue
+	var statusAttributeValue = dynamodb.AttributeValue{}
+	statusAttributeValue.SetS(status)
+	expressionValuePlaceholders[":status"] = &statusAttributeValue
 	var timeLastRatedAttributeValue = dynamodb.AttributeValue{}
 	timeLastRatedAttributeValue.SetS(timeLastRated)
 	expressionValuePlaceholders[":timeLastRated"] = &timeLastRatedAttributeValue
@@ -88,7 +94,7 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
 	updateItemInput.SetKey(keyMap)
 	updateItemInput.SetTableName("Party")
-	updateExpression := "SET #i.#f.#r=:rating, #i.#f.#t=:timeLastRated"
+	updateExpression := "SET #i.#f.#r=:rating, #i.#f.#s=:status, #i.#f.#t=:timeLastRated"
 	updateItemInput.UpdateExpression = &updateExpression
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
 	var dynamodbCall = DynamodbCall{}

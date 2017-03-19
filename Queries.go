@@ -73,6 +73,7 @@ type PartyData struct {
 type Host struct {
 	IsMainHost bool   `json:"isMainHost"`
 	Name       string `json:"name"`
+	Status     string `json:"status"`
 }
 
 // Invitee : An invitee to a party from the database in json format
