@@ -37,7 +37,8 @@ func createBarKeyForBarOwnerHelper() QueryResult {
 	// Finally
 	expressionValues := make(map[string]*dynamodb.AttributeValue)
 	var barKeyAttributeValue = dynamodb.AttributeValue{}
-	barKeyAttributeValue.SetS(getRandomBarKey())
+	var key = getRandomBarKey()
+	barKeyAttributeValue.SetS(key)
 	expressionValues["key"] = &barKeyAttributeValue
 
 	var putItemInput = dynamodb.PutItemInput{}
@@ -52,6 +53,7 @@ func createBarKeyForBarOwnerHelper() QueryResult {
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
+	queryResult.Error = key
 	queryResult.Succeeded = true
 	return queryResult
 }
