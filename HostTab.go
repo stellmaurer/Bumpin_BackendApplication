@@ -17,6 +17,22 @@ import (
 //		string "" since dynamodb doesn't allow empty strings
 const NULL = "null"
 
+func getBarKey(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	key := r.Form.Get("key")
+	queryResult := getBarKeyHelper(key)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func deleteBarKey(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	key := r.Form.Get("key")
+	queryResult := deleteBarKeyHelper(key)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
 // Create a party
 func createParty(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
@@ -69,6 +85,7 @@ func createParty(w http.ResponseWriter, r *http.Request) {
 // Create a party
 func createBar(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
+	barKey := r.Form.Get("barKey")
 	facebookID := r.Form.Get("facebookID")
 	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
 	nameOfCreator := r.Form.Get("nameOfCreator")
@@ -118,7 +135,7 @@ func createBar(w http.ResponseWriter, r *http.Request) {
 	if details == "" {
 		details = NULL
 	}
-	queryResult = createBarHelper(facebookID, isMale, nameOfCreator, addressLine1, addressLine2, barID, city, country, details, latitude, longitude, name, phoneNumber, schedule, stateProvinceRegion, zipCode)
+	queryResult = createBarHelper(barKey, facebookID, isMale, nameOfCreator, addressLine1, addressLine2, barID, city, country, details, latitude, longitude, name, phoneNumber, schedule, stateProvinceRegion, zipCode)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -422,8 +439,103 @@ func getBars(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-func createBarHelper(facebookID string, isMale bool, nameOfCreator string, addressLine1 string, addressLine2 string, barID string, city string, country string, details string, latitude string, longitude string, name string, phoneNumber string, schedule map[string]ScheduleForDay, stateProvinceRegion string, zipCode string) QueryResult {
+func getBarKeyHelper(key string) QueryResult {
 	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "getBarKeyHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	var getItemInput = dynamodb.GetItemInput{}
+	getItemInput.SetTableName("BarKey")
+	var attributeValue = dynamodb.AttributeValue{}
+	attributeValue.SetS(key)
+	getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"key": &attributeValue})
+	getItemOutput, err2 := getter.DynamoDB.GetItem(&getItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "getBarKeyHelper function: GetItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+
+	data := getItemOutput.Item
+	var barKey BarKey
+	jsonErr := dynamodbattribute.UnmarshalMap(data, &barKey)
+	if jsonErr != nil {
+		queryResult.Error = "getBarKey function: UnmarshalListOfMaps error. " + jsonErr.Error()
+		return queryResult
+	}
+	queryResult.Succeeded = true
+	if barKey.Key == "" {
+		queryResult.Succeeded = false
+		queryResult.Error = "The bar key doesn't exist."
+	}
+	return queryResult
+}
+
+func deleteBarKeyHelper(key string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "deleteBarKey function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var keyAttributeValue = dynamodb.AttributeValue{}
+	keyAttributeValue.SetS(key)
+	keyMap["key"] = &keyAttributeValue
+
+	var deleteItemInput = dynamodb.DeleteItemInput{}
+	deleteItemInput.SetTableName("BarKey")
+	deleteItemInput.SetKey(keyMap)
+
+	_, err2 := getter.DynamoDB.DeleteItem(&deleteItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "deleteBarKeyHelper function: DeleteItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreator string, addressLine1 string, addressLine2 string, barID string, city string, country string, details string, latitude string, longitude string, name string, phoneNumber string, schedule map[string]ScheduleForDay, stateProvinceRegion string, zipCode string) QueryResult {
+	queryResult := getBarKeyHelper(barKey)
+	if queryResult.Succeeded == false {
+		return queryResult
+	}
+	queryResult = deleteBarKeyHelper(barKey)
+	if queryResult.Succeeded == false {
+		return queryResult
+	}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
 	type ItemGetter struct {
@@ -491,7 +603,7 @@ func createBarHelper(facebookID string, isMale bool, nameOfCreator string, addre
 	isMaleAttribute.SetBOOL(isMale)
 	nameOfCreatorAttribute.SetS(nameOfCreator)
 	ratingAttribute.SetS("none")
-	statusAttribute.SetS("going")
+	statusAttribute.SetS("maybe")
 	timeLastRatedAttribute.SetS("01/01/2000 00:00:00")
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameOfCreatorAttribute
