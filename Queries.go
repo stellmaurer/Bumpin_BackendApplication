@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -119,6 +120,11 @@ type Attendee struct {
 	TimeLastRated string `json:"timeLastRated"`
 }
 
+// BarKey : A BarKey in the database
+type BarKey struct {
+	Key string `json:"key"`
+}
+
 // QueryResult : The result of a query in json format
 type QueryResult struct {
 	Succeeded     bool           `json:"succeeded"`
@@ -173,5 +179,17 @@ func convertTwoQueryResultsToOne(queryResult1 QueryResult, queryResult2 QueryRes
 }
 
 func getRandomID() uint64 {
-	return uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
+	var rand1 = rand.New(rand.NewSource(time.Now().UnixNano()))
+	var rand2 = rand.New(rand.NewSource(time.Now().UnixNano() + time.Now().UnixNano()))
+	return uint64(rand1.Uint32())<<32 + uint64(rand2.Uint32())
+}
+
+func getRandomBarKey() string {
+	const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	b := make([]byte, 16)
+	for i := range b {
+		var rand1 = rand.New(rand.NewSource(time.Now().UnixNano()))
+		b[i] = chars[rand1.Int()%len(chars)]
+	}
+	return string(b)
 }
