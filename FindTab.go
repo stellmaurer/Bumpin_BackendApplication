@@ -65,6 +65,7 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	barID := r.Form.Get("barID")
 	facebookID := r.Form.Get("facebookID")
+	atBar, atBarConvErr := strconv.ParseBool(r.Form.Get("atBar"))
 	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
 	name := r.Form.Get("name")
 	rating := r.Form.Get("rating")
@@ -78,7 +79,59 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult = changeAttendanceStatusToBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated)
+	if atBarConvErr != nil {
+		queryResult.Error = "changeAttendanceStatusToBar function: HTTP post request atBar parameter messed up. " + atBarConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Change my atPartyStatus
+func changeAtPartyStatus(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	partyID := r.Form.Get("partyID")
+	facebookID := r.Form.Get("facebookID")
+	atParty, atPartyConvErr := strconv.ParseBool(r.Form.Get("atParty"))
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	if atPartyConvErr != nil {
+		queryResult.Error = "changeAtPartyStatus function: HTTP post request atParty parameter messed up. " + atPartyConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = changeAtPartyStatusHelper(partyID, facebookID, atParty)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+// Change the user's atBar status
+func changeAtBarStatus(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	barID := r.Form.Get("barID")
+	facebookID := r.Form.Get("facebookID")
+	atBar, atBarConvErr := strconv.ParseBool(r.Form.Get("atBar"))
+	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
+	name := r.Form.Get("name")
+	rating := r.Form.Get("rating")
+	status := r.Form.Get("status")
+	timeLastRated := r.Form.Get("timeLastRated")
+
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	if isMaleConvErr != nil {
+		queryResult.Error = "changeAtBarStatus function: HTTP post request isMale parameter messed up. " + isMaleConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	if atBarConvErr != nil {
+		queryResult.Error = "changeAtBarStatus function: HTTP post request atBar parameter messed up. " + atBarConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -288,7 +341,7 @@ func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, stat
 	return queryResult
 }
 
-func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale bool, name string, rating string, status string, timeLastRated string) QueryResult {
+func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, isMale bool, name string, rating string, status string, timeLastRated string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -300,7 +353,7 @@ func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale b
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		queryResult.Error = "changeAttendanceStatusToBarHelper function: session creation error. " + err.Error()
+		queryResult.Error = "createOrUpdateAttendeeHelper function: session creation error. " + err.Error()
 		return queryResult
 	}
 	var svc = dynamodb.New(sess)
@@ -314,16 +367,19 @@ func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale b
 
 	attendeeMap := make(map[string]*dynamodb.AttributeValue)
 	var attendee = dynamodb.AttributeValue{}
+	var atBarAttribute = dynamodb.AttributeValue{}
 	var isMaleAttribute = dynamodb.AttributeValue{}
 	var nameAttribute = dynamodb.AttributeValue{}
 	var ratingAttribute = dynamodb.AttributeValue{}
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
+	atBarAttribute.SetBOOL(atBar)
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
 	ratingAttribute.SetS(rating)
 	statusAttribute.SetS(status)
 	timeLastRatedAttribute.SetS(timeLastRated)
+	attendeeMap["atBar"] = &atBarAttribute
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameAttribute
 	attendeeMap["rating"] = &ratingAttribute
@@ -348,7 +404,61 @@ func changeAttendanceStatusToBarHelper(barID string, facebookID string, isMale b
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
 	var dynamodbCall = DynamodbCall{}
 	if err2 != nil {
-		dynamodbCall.Error = "changeAttendanceStatusToBarHelper function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Error = "createOrUpdateAttendeeHelper function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func changeAtPartyStatusHelper(partyID string, facebookID string, atParty bool) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "changeAtPartyStatusHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var invitees = "invitees"
+	stringAtParty := "atParty"
+	expressionAttributeNames["#i"] = &invitees
+	expressionAttributeNames["#f"] = &facebookID
+	expressionAttributeNames["#a"] = &stringAtParty
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var atPartyAttributeValue = dynamodb.AttributeValue{}
+	atPartyAttributeValue.SetBOOL(atParty)
+	expressionValuePlaceholders[":atParty"] = &atPartyAttributeValue
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetN(partyID)
+	keyMap["partyID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Party")
+	updateExpression := "SET #i.#f.#a=:atParty"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "changeAtPartyStatusHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
@@ -375,7 +485,7 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool,
 	}
 	// constant in the past to make sure the invitee
 	//     can rate the party right away
-	timeLastRated := "01/01/2000 00:00:00"
+	timeLastRated := "2000-01-01T00:00:00Z"
 
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
@@ -408,18 +518,21 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool,
 
 	inviteeMap := make(map[string]*dynamodb.AttributeValue)
 	var invitee = dynamodb.AttributeValue{}
+	var atPartyAttribute = dynamodb.AttributeValue{}
 	var isMaleAttribute = dynamodb.AttributeValue{}
 	var nameAttribute = dynamodb.AttributeValue{}
 	var numberOfInvitationsLeftAttribute = dynamodb.AttributeValue{}
 	var ratingAttribute = dynamodb.AttributeValue{}
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
+	atPartyAttribute.SetBOOL(false)
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
 	numberOfInvitationsLeftAttribute.SetN(numberOfInvitationsLeft)
 	ratingAttribute.SetS(rating)
 	statusAttribute.SetS(status)
 	timeLastRatedAttribute.SetS(timeLastRated)
+	inviteeMap["atParty"] = &atPartyAttribute
 	inviteeMap["isMale"] = &isMaleAttribute
 	inviteeMap["name"] = &nameAttribute
 	inviteeMap["numberOfInvitationsLeft"] = &numberOfInvitationsLeftAttribute

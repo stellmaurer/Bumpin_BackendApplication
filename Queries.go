@@ -79,6 +79,7 @@ type Host struct {
 
 // Invitee : An invitee to a party from the database in json format
 type Invitee struct {
+	AtParty       bool   `json:"atParty"`
 	IsMale        bool   `json:"isMale"`
 	Name          string `json:"name"`
 	Rating        string `json:"rating"`
@@ -88,21 +89,23 @@ type Invitee struct {
 
 // BarData : A bar from the database in json format
 type BarData struct {
-	AddressLine1        string                    `json:"addressLine1"`
-	AddressLine2        string                    `json:"addressLine2"`
-	Attendees           map[string]*Attendee      `json:"attendees"`
-	BarID               uint64                    `json:"barID"`
-	City                string                    `json:"city"`
-	Country             string                    `json:"country"`
-	Details             string                    `json:"details"`
-	Hosts               map[string]*Host          `json:"hosts"`
-	Latitude            float64                   `json:"latitude"`
-	Longitude           float64                   `json:"longitude"`
-	Name                string                    `json:"name"`
-	PhoneNumber         string                    `json:"phoneNumber"`
-	Schedule            map[string]ScheduleForDay `json:"schedule"`
-	StateProvinceRegion string                    `json:"stateProvinceRegion"`
-	ZipCode             uint32                    `json:"zipCode"`
+	AddressLine1                  string                    `json:"addressLine1"`
+	AddressLine2                  string                    `json:"addressLine2"`
+	AttendeesMapCleanUpHourInZulu uint32                    `json:"attendeesMapCleanUpHourInZulu"`
+	Attendees                     map[string]*Attendee      `json:"attendees"`
+	BarID                         uint64                    `json:"barID"`
+	City                          string                    `json:"city"`
+	Country                       string                    `json:"country"`
+	Details                       string                    `json:"details"`
+	Hosts                         map[string]*Host          `json:"hosts"`
+	Latitude                      float64                   `json:"latitude"`
+	Longitude                     float64                   `json:"longitude"`
+	Name                          string                    `json:"name"`
+	PhoneNumber                   string                    `json:"phoneNumber"`
+	Schedule                      map[string]ScheduleForDay `json:"schedule"`
+	StateProvinceRegion           string                    `json:"stateProvinceRegion"`
+	TimeZone                      uint32                    `json:"timeZone"`
+	ZipCode                       uint32                    `json:"zipCode"`
 }
 
 // ScheduleForDay : A particular day's schedule
@@ -113,6 +116,7 @@ type ScheduleForDay struct {
 
 // Attendee : An attendee to a bar in the database in json format
 type Attendee struct {
+	AtBar         bool   `json:"atBar"`
 	IsMale        bool   `json:"isMale"`
 	Name          string `json:"name"`
 	Rating        string `json:"rating"`
