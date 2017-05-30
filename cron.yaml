@@ -1,5 +1,0 @@
-version: 1
-cron:
- - name: "deletePartiesThatHaveExpired"
-   url: "/deletePartiesThatHaveExpired"
-   schedule: "0 5 * * *"

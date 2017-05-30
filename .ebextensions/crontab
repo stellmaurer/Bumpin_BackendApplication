@@ -1,0 +1,2 @@
+0 3,7,11,15,19,23 * * * curl http://localhost:5000/deletePartiesThatHaveExpired
+0 * * * * curl http://localhost:5000/cleanUpAttendeesMapForBarsThatRecentlyClosed

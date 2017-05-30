@@ -1,1 +1,1 @@
-sh: Bumpin_BackendApplication
+web: bin/application
