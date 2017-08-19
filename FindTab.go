@@ -187,7 +187,7 @@ func getPartiesHelper(partyIDs []string) QueryResult {
 	attributesAndValues := make([]map[string]*dynamodb.AttributeValue, len(partyIDs))
 	for i := 0; i < len(partyIDs); i++ {
 		var attributeValue = dynamodb.AttributeValue{}
-		attributeValue.SetN(partyIDs[i])
+		attributeValue.SetS(partyIDs[i])
 		attributesAndValues[i] = make(map[string]*dynamodb.AttributeValue)
 		attributesAndValues[i]["partyID"] = &attributeValue
 	}
@@ -317,7 +317,7 @@ func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, stat
 	expressionValuePlaceholders[":status"] = &statusAttributeValue
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -390,7 +390,7 @@ func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, i
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(barID)
+	key.SetS(barID)
 	keyMap["barID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -444,7 +444,7 @@ func changeAtPartyStatusHelper(partyID string, facebookID string, atParty bool) 
 	expressionValuePlaceholders[":atParty"] = &atPartyAttributeValue
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -475,13 +475,13 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool,
 		// hosts can let their invitees give out their own invitations
 		numberOfInvitationsLeft = numberOfInvitesToGive
 	}
-	rating := "none"
-	var status = "invited"
+	rating := "None"
+	var status = "Invited"
 	// myFacebookID will equal friendFacebookID if this function is being called
 	//		by the acceptInvitationToHostParty function, so logically we want
-	//		the invitation status of the new host to be "going".
+	//		the invitation status of the new host to be "Going".
 	if myFacebookID == friendFacebookID {
-		status = "going"
+		status = "Going"
 	}
 	// constant in the past to make sure the invitee
 	//     can rate the party right away
@@ -554,7 +554,7 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool,
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -645,7 +645,7 @@ func removeFriendFromPartyHelper(partyID string, friendFacebookID string) QueryR
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}

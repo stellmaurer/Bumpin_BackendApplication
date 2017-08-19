@@ -85,7 +85,7 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -157,7 +157,7 @@ func rateBarHelper(barID string, facebookID string, isMale bool, name string, ra
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(barID)
+	key.SetS(barID)
 	keyMap["barID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
