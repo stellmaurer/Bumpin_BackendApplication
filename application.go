@@ -57,7 +57,7 @@ func main() {
 	/*
 		Rate tab queries
 	*/
-	// curl http://localhost:5000/rateParty -d "partyID=10583166241324703384&facebookID=10155613117039816&rating=Heating%20Up&timeLastRated=2017-03-04T00:57:00Z"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=10583166241324703384&facebookID=10155613117039816&rating=Heating%20Up&timeLastRated=2017-03-04T00:57:00Z"
 	go http.HandleFunc("/rateParty", rateParty)
 	// curl http://localhost:5000/rateBar -d "barID=5272501342297530080&facebookID=370&isMale=true&name=Steve&rating=Heating%20Up&status=Going&timeLastRated=2017-03-04T01:25:00Z"
 	go http.HandleFunc("/rateBar", rateBar)
