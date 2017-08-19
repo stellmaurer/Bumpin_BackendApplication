@@ -276,7 +276,7 @@ func askFriendToHostPartyWithYou(w http.ResponseWriter, r *http.Request) {
 	partyID := r.Form.Get("partyID")
 	friendFacebookID := r.Form.Get("friendFacebookID")
 	name := r.Form.Get("name")
-	status := "waiting"
+	status := "Waiting"
 	queryResult := askFriendToHostPartyWithYouHelper(partyID, friendFacebookID, name, status)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
@@ -288,7 +288,7 @@ func askFriendToHostBarWithYou(w http.ResponseWriter, r *http.Request) {
 	barID := r.Form.Get("barID")
 	friendFacebookID := r.Form.Get("friendFacebookID")
 	name := r.Form.Get("name")
-	status := "waiting"
+	status := "Waiting"
 	queryResult := askFriendToHostBarWithYouHelper(barID, friendFacebookID, name, status)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
@@ -574,7 +574,7 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	addressLine1AttributeValue.SetS(addressLine1)
 	addressLine2AttributeValue.SetS(addressLine2)
 	attendeesMapCleanUpHourInZuluAttributeValue.SetN(attendeesMapCleanUpHourInZulu)
-	barIDAttributeValue.SetN(barID)
+	barIDAttributeValue.SetS(barID)
 	cityAttributeValue.SetS(city)
 	countryAttributeValue.SetS(country)
 	detailsAttributeValue.SetS(details)
@@ -612,8 +612,8 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
 	isMaleAttribute.SetBOOL(isMale)
 	nameOfCreatorAttribute.SetS(nameOfCreator)
-	ratingAttribute.SetS("none")
-	statusAttribute.SetS("maybe")
+	ratingAttribute.SetS("None")
+	statusAttribute.SetS("Maybe")
 	timeLastRatedAttribute.SetS("2000-01-01T00:00:00Z")
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameOfCreatorAttribute
@@ -707,7 +707,7 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	var isMainHostAttribute = dynamodb.AttributeValue{}
 	var hostStatusAttribute = dynamodb.AttributeValue{}
 	isMainHostAttribute.SetBOOL(true)
-	hostStatusAttribute.SetS("accepted")
+	hostStatusAttribute.SetS("Accepted")
 	nameOfCreatorAttribute.SetS(nameOfCreator)
 	hostMap["isMainHost"] = &isMainHostAttribute
 	hostMap["name"] = &nameOfCreatorAttribute
@@ -815,7 +815,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	invitesForNewInviteesAttributeValue.SetN(invitesForNewInvitees)
 	latitudeAttributeValue.SetN(latitude)
 	longitudeAttributeValue.SetN(longitude)
-	partyIDAttributeValue.SetN(partyID)
+	partyIDAttributeValue.SetS(partyID)
 	startTimeAttributeValue.SetS(startTime)
 	stateProvinceRegionAttributeValue.SetS(stateProvinceRegion)
 	titleAttributeValue.SetS(title)
@@ -852,8 +852,8 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
 	numberOfInvitationsLeftAttribute.SetN("0")
-	ratingAttribute.SetS("none")
-	statusAttribute.SetS("going")
+	ratingAttribute.SetS("None")
+	statusAttribute.SetS("Going")
 	atPartyAttribute.SetBOOL(false)
 	timeLastRatedAttribute.SetS("2000-01-01T00:00:00Z")
 	inviteeMap["isMale"] = &isMaleAttribute
@@ -876,7 +876,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	var hostStatusAttribute = dynamodb.AttributeValue{}
 	isMainHostAttribute.SetBOOL(true)
 	nameAttribute.SetS(name)
-	hostStatusAttribute.SetS("accepted")
+	hostStatusAttribute.SetS("Accepted")
 	hostMap["isMainHost"] = &isMainHostAttribute
 	hostMap["name"] = &nameAttribute
 	hostMap["status"] = &hostStatusAttribute
@@ -1036,7 +1036,7 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	expressionValuePlaceholders[":zipCode"] = &zipCodeAttributeValue
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -1227,7 +1227,7 @@ func updateBarHelper(addressLine1 string, addressLine2 string, attendeesMapClean
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(barID)
+	key.SetS(barID)
 	keyMap["barID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -1284,7 +1284,7 @@ func deletePartyHelper(partyID string) QueryResult {
 	// Finally
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var deleteItemInput = dynamodb.DeleteItemInput{}
@@ -1469,7 +1469,7 @@ func deleteBarHelper(barID string) QueryResult {
 	// Finally
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(barID)
+	key.SetS(barID)
 	keyMap["barID"] = &key
 
 	var deleteItemInput = dynamodb.DeleteItemInput{}
@@ -1578,7 +1578,7 @@ func getParty(partyID string) QueryResult {
 	var getItemInput = dynamodb.GetItemInput{}
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 	getItemInput.SetKey(keyMap)
 	getItemInput.SetTableName("Party")
@@ -1626,7 +1626,7 @@ func getBar(barID string) QueryResult {
 	var getItemInput = dynamodb.GetItemInput{}
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(barID)
+	key.SetS(barID)
 	keyMap["barID"] = &key
 	getItemInput.SetKey(keyMap)
 	getItemInput.SetTableName("Bar")
@@ -1689,7 +1689,7 @@ func setNumberOfInvitationsLeftForInviteesHelper(partyID string, invitees []stri
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -1757,7 +1757,7 @@ func askFriendToHostPartyWithYouHelper(partyID string, friendFacebookID string, 
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -1855,7 +1855,7 @@ func askFriendToHostBarWithYouHelper(barID string, friendFacebookID string, name
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(barID)
+	key.SetS(barID)
 	keyMap["barID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -1937,7 +1937,7 @@ func removePartyHostHelper(partyID string, facebookID string) QueryResult {
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -2013,7 +2013,7 @@ func removeBarHostHelper(barID string, facebookID string) QueryResult {
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(barID)
+	key.SetS(barID)
 	keyMap["barID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -2092,12 +2092,12 @@ func acceptInvitationToHostPartyHelper(partyID string, facebookID string, isMale
 
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 	var statusAttribute = dynamodb.AttributeValue{}
-	statusAttribute.SetS("accepted")
+	statusAttribute.SetS("Accepted")
 	expressionValuePlaceholders[":status"] = &statusAttribute
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -2188,12 +2188,12 @@ func acceptInvitationToHostBarHelper(barID string, facebookID string) QueryResul
 
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 	var statusAttribute = dynamodb.AttributeValue{}
-	statusAttribute.SetS("accepted")
+	statusAttribute.SetS("Accepted")
 	expressionValuePlaceholders[":status"] = &statusAttribute
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(barID)
+	key.SetS(barID)
 	keyMap["barID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -2284,7 +2284,7 @@ func declineInvitationToHostPartyHelper(partyID string, facebookID string) Query
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(partyID)
+	key.SetS(partyID)
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -2370,7 +2370,7 @@ func declineInvitationToHostBarHelper(barID string, facebookID string) QueryResu
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(barID)
+	key.SetS(barID)
 	keyMap["barID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
@@ -2445,7 +2445,7 @@ func getBarsHelper(barIDs []string) QueryResult {
 	attributesAndValues := make([]map[string]*dynamodb.AttributeValue, len(barIDs))
 	for i := 0; i < len(barIDs); i++ {
 		var attributeValue = dynamodb.AttributeValue{}
-		attributeValue.SetN(barIDs[i])
+		attributeValue.SetS(barIDs[i])
 		attributesAndValues[i] = make(map[string]*dynamodb.AttributeValue)
 		attributesAndValues[i]["barID"] = &attributeValue
 	}

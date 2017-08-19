@@ -16,7 +16,7 @@ func main() {
 	/*
 		Cleanup of parties that have ended
 	*/
-	// curl http://localhost:5000/deletePartiesThatHaveExpired
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deletePartiesThatHaveExpired
 	go http.HandleFunc("/deletePartiesThatHaveExpired", deletePartiesThatHaveExpired)
 
 	/*
@@ -35,12 +35,12 @@ func main() {
 	/*
 		Find tab queries
 	*/
-	// curl "http://localhost:5000/myParties?partyIDs=3581107088474971827,10583166241324703384"
+	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/myParties?partyIDs=12552149337110672982,3581107088474971827"
 	go http.HandleFunc("/myParties", getParties)
 	// curl "http://localhost:5000/barsCloseToMe?latitude=43&longitude=-92"
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/barsCloseToMe?latitude=43&longitude=-89"
 	go http.HandleFunc("/barsCloseToMe", barsCloseToMe)
-	// curl http://localhost:5000/changeAttendanceStatusToParty -d "partyID=10583166241324703384&facebookID=10155613117039816&status=Maybe"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/changeAttendanceStatusToParty -d "partyID=10583166241324703384&facebookID=10155613117039816&status=Maybe"
 	go http.HandleFunc("/changeAttendanceStatusToParty", changeAttendanceStatusToParty)
 	// curl http://localhost:5000/changeAttendanceStatusToBar -d "barID=1&facebookID=370&atBar=true&isMale=true&name=Steve&rating=None&status=Maybe&timeLastRated=2017-03-04T00:00:00Z"
 	// curl http://localhost:5000/changeAttendanceStatusToBar -d "barID=5272501342297530080&facebookID=9321&atBar=false&isMale=false&name=Emily%20Blunt&rating=None&status=Maybe&timeLastRated=2001-01-01T00:00:00Z"
@@ -57,7 +57,7 @@ func main() {
 	/*
 		Rate tab queries
 	*/
-	// curl http://localhost:5000/rateParty -d "partyID=10583166241324703384&facebookID=10155613117039816&rating=Heating%20Up&timeLastRated=2017-03-04T00:57:00Z"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=10583166241324703384&facebookID=10155613117039816&rating=Heating%20Up&timeLastRated=2017-03-04T00:57:00Z"
 	go http.HandleFunc("/rateParty", rateParty)
 	// curl http://localhost:5000/rateBar -d "barID=5272501342297530080&facebookID=370&isMale=true&name=Steve&rating=Heating%20Up&status=Going&timeLastRated=2017-03-04T01:25:00Z"
 	go http.HandleFunc("/rateBar", rateBar)
@@ -73,6 +73,7 @@ func main() {
 	// curl http://localhost:5000/deleteParty -d "partyID=7833179233048568588"
 	go http.HandleFunc("/deleteParty", deleteParty)
 	// curl http://localhost:5000/deleteBar -d "barID=2629732187453375056"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteBar -d "barID=11154013587666973726"
 	go http.HandleFunc("/deleteBar", deleteBar)
 	// curl http://localhost:5000/updateParty -d "partyID=12258969221770119542&addressLine1=University%20of%20Milwaukee%20Dorms&city=Milwaukee&country=United%20States&details=none&drinksProvided=true&endTime=2016-02-03T02:00:00Z&feeForDrinks=true&invitesForNewInvitees=3&latitude=33&longitude=77&startTime=2016-02-02T19:02:00Z&stateProvinceRegion=Wisconsin&title=Panther%20Game&zipCode=56677"
 	go http.HandleFunc("/updateParty", updateParty)
@@ -162,36 +163,36 @@ func main() {
 		Demo:
 
 		Susan creates a surprise party for my sister's birthday:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&addressLine1=550%20W%20Main%20St&city=Madison&country=United%20States&drinksProvided=true&endTime=2017-05-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.068284&longitude=-89.391325&startTime=2017-05-25T00:00:00Z&stateProvinceRegion=Wisconsin&title=Lisa's%20Birthday&zipCode=53703"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&addressLine1=550%20W%20Main%20St&city=Madison&country=United%20States&drinksProvided=true&endTime=2017-09-25T04:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.068284&longitude=-89.391325&startTime=2017-09-25T00:00Z&stateProvinceRegion=Wisconsin&title=Lisa's%20Birthday&zipCode=53703"
 
 		******** Find the party ID and update all these next calls with it:
 
 		Susan want's me to be able to edit the party and invite people so she asks me to host the party with her:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/askFriendToHostPartyWithYou -d "partyID=3026174495234523991&friendFacebookID=10155613117039816&name=Steve%20Ellmaurer"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/askFriendToHostPartyWithYou -d "partyID=12552149337110672982&friendFacebookID=10155613117039816&name=Steve%20Ellmaurer"
 		I accept the invitation to host the party with her:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/acceptInvitationToHostParty -d "partyID=3026174495234523991&facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/acceptInvitationToHostParty -d "partyID=12552149337110672982&facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
 		******** I automatically get invited when I accept the invitation to host the party
 
 		I invite my friend Sarah Carlson to the party and I give her one invitation so that she can bring a friend:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/inviteFriendToParty -d "partyID=3026174495234523991&myFacebookID=10155613117039816&isHost=true&numberOfInvitesToGive=1&friendFacebookID=12345699033&isMale=false&name=Sarah%20Carlson"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/inviteFriendToParty -d "partyID=12552149337110672982&myFacebookID=10155613117039816&isHost=true&numberOfInvitesToGive=1&friendFacebookID=12345699033&isMale=false&name=Sarah%20Carlson"
 		Susan removes me as a host because I was inviting too many people:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/removePartyHost -d "partyID=3026174495234523991&facebookID=10155613117039816"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/removePartyHost -d "partyID=12552149337110672982&facebookID=10155613117039816"
 		Susan uninvites me from the party because I made her mad:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=3026174495234523991&removalsListFacebookID=10155613117039816"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=12552149337110672982&removalsListFacebookID=10155613117039816"
 		After I apologize to her for making her mad and beg her to re-invite me, she decides to invite me again:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=3026174495234523991&numberOfInvitesToGive=5&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=12552149337110672982&numberOfInvitesToGive=5&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
 		Susan then realizes that she forgot to set my invitations to zero, so she updates that now so that I can't invite anyone:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/setNumberOfInvitationsLeftForInvitees -d "partyID=3026174495234523991&invitees=10155613117039816&invitationsLeft=0"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/setNumberOfInvitationsLeftForInvitees -d "partyID=12552149337110672982&invitees=10155613117039816&invitationsLeft=0"
 		After the expected attendance rises too much, Susan realizes she'll need to move the party to her place, so she updates the party details with the new address and while she's at it, she changes the name to mention it will be a surprise.
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateParty -d "partyID=3026174495234523991&addressLine1=6150%20Century%20Ave&addressLine2=Apt%20109&city=Madison&country=United%20States&details=Meet%20us%20out%20back.&drinksProvided=true&endTime=2017-05-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.106061&longitude=-89.485127&startTime=2017-05-25T00:00:00Z&stateProvinceRegion=Wisconsin&title=Lisa's%20Surprise%20B-day&zipCode=53703"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateParty -d "partyID=12552149337110672982&addressLine1=6150%20Century%20Ave&addressLine2=Apt%20109&city=Madison&country=United%20States&details=Meet%20us%20out%20back.&drinksProvided=true&endTime=2017-09-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.106061&longitude=-89.485127&startTime=2017-09-25T00:00:00Z&stateProvinceRegion=Wisconsin&title=Lisa's%20Surprise%20B-day&zipCode=53703"
 		The party comes around and it's AWESOME, so I decide to rate it Bumpin.
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=3026174495234523991&facebookID=10155613117039816&rating=Bumpin&timeLastRated=2017-05-25T02:00:00Z"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=12552149337110672982&facebookID=10155613117039816&rating=Bumpin&timeLastRated=2017-05-25T02:00:00Z"
 
 		******** The rest of the night is wonderful, but it goes by quick and now the party is finished.
 		******** The cleanup of finished parties is actually done automatically everday at noon central time,
 							but Susan decides to delete the party manually.
 		Delete the party:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteParty -d "partyID=3026174495234523991"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteParty -d "partyID=12552149337110672982"
 
 
 	*/

@@ -272,7 +272,7 @@ func cleanUpAttendeesMapOfBar(barID string) QueryResult {
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
-	key.SetN(barID)
+	key.SetS(barID)
 	keyMap["barID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}

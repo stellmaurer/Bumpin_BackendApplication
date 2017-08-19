@@ -63,7 +63,7 @@ type PartyData struct {
 	Latitude              float64             `json:"latitude"`
 	Longitude             float64             `json:"longitude"`
 	InvitesForNewInvitees uint16              `json:"invitesForNewInvitees"`
-	PartyID               uint64              `json:"partyID"`
+	PartyID               string              `json:"partyID"`
 	StartTime             string              `json:"startTime"`
 	StateProvinceRegion   string              `json:"stateProvinceRegion"`
 	Title                 string              `json:"title"`
@@ -93,7 +93,7 @@ type BarData struct {
 	AddressLine2                  string                    `json:"addressLine2"`
 	AttendeesMapCleanUpHourInZulu uint32                    `json:"attendeesMapCleanUpHourInZulu"`
 	Attendees                     map[string]*Attendee      `json:"attendees"`
-	BarID                         uint64                    `json:"barID"`
+	BarID                         string                    `json:"barID"`
 	City                          string                    `json:"city"`
 	Country                       string                    `json:"country"`
 	Details                       string                    `json:"details"`
