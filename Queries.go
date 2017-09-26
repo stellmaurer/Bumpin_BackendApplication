@@ -79,12 +79,13 @@ type Host struct {
 
 // Invitee : An invitee to a party from the database in json format
 type Invitee struct {
-	AtParty       bool   `json:"atParty"`
-	IsMale        bool   `json:"isMale"`
-	Name          string `json:"name"`
-	Rating        string `json:"rating"`
-	TimeLastRated string `json:"timeLastRated"`
-	Status        string `json:"status"`
+	AtParty                 bool   `json:"atParty"`
+	IsMale                  bool   `json:"isMale"`
+	Name                    string `json:"name"`
+	Rating                  string `json:"rating"`
+	TimeLastRated           string `json:"timeLastRated"`
+	TimeOfLastKnownLocation string `json:"timeOfLastKnownLocation"`
+	Status                  string `json:"status"`
 }
 
 // BarData : A bar from the database in json format
@@ -116,12 +117,13 @@ type ScheduleForDay struct {
 
 // Attendee : An attendee to a bar in the database in json format
 type Attendee struct {
-	AtBar         bool   `json:"atBar"`
-	IsMale        bool   `json:"isMale"`
-	Name          string `json:"name"`
-	Rating        string `json:"rating"`
-	Status        string `json:"status"`
-	TimeLastRated string `json:"timeLastRated"`
+	AtBar                   bool   `json:"atBar"`
+	IsMale                  bool   `json:"isMale"`
+	Name                    string `json:"name"`
+	Rating                  string `json:"rating"`
+	Status                  string `json:"status"`
+	TimeLastRated           string `json:"timeLastRated"`
+	TimeOfLastKnownLocation string `json:"timeOfLastKnownLocation"`
 }
 
 // BarKey : A BarKey in the database

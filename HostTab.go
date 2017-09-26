@@ -605,21 +605,28 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	var attendees = dynamodb.AttributeValue{}
 	attendeeMap := make(map[string]*dynamodb.AttributeValue)
 	var attendee = dynamodb.AttributeValue{}
+	var atBarAttribute = dynamodb.AttributeValue{}
 	var isMaleAttribute = dynamodb.AttributeValue{}
 	var nameOfCreatorAttribute = dynamodb.AttributeValue{}
 	var ratingAttribute = dynamodb.AttributeValue{}
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
+	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
+	atBarAttribute.SetBOOL(false)
 	isMaleAttribute.SetBOOL(isMale)
 	nameOfCreatorAttribute.SetS(nameOfCreator)
 	ratingAttribute.SetS("None")
 	statusAttribute.SetS("Maybe")
 	timeLastRatedAttribute.SetS("2000-01-01T00:00:00Z")
+	timeOfLastKnownLocationAttribute.SetS("2000-01-01T00:00:00Z")
+	attendeeMap["atBar"] = &atBarAttribute
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameOfCreatorAttribute
 	attendeeMap["rating"] = &ratingAttribute
 	attendeeMap["status"] = &statusAttribute
 	attendeeMap["timeLastRated"] = &timeLastRatedAttribute
+	attendeeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
+
 	attendee.SetM(attendeeMap)
 	attendeesMap[facebookID] = &attendee
 	attendees.SetM(attendeesMap)
@@ -849,6 +856,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	var statusAttribute = dynamodb.AttributeValue{}
 	var atPartyAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
+	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
 	numberOfInvitationsLeftAttribute.SetN("0")
@@ -856,6 +864,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	statusAttribute.SetS("Going")
 	atPartyAttribute.SetBOOL(false)
 	timeLastRatedAttribute.SetS("2000-01-01T00:00:00Z")
+	timeOfLastKnownLocationAttribute.SetS("2000-01-01T00:00:00Z")
 	inviteeMap["isMale"] = &isMaleAttribute
 	inviteeMap["name"] = &nameAttribute
 	inviteeMap["numberOfInvitationsLeft"] = &numberOfInvitationsLeftAttribute
@@ -863,6 +872,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	inviteeMap["atParty"] = &atPartyAttribute
 	inviteeMap["status"] = &statusAttribute
 	inviteeMap["timeLastRated"] = &timeLastRatedAttribute
+	inviteeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
 	invitee.SetM(inviteeMap)
 	inviteesMap[facebookID] = &invitee
 	invitees.SetM(inviteesMap)
