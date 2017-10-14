@@ -18,7 +18,8 @@ func rateParty(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	rating := r.Form.Get("rating")
 	timeLastRated := r.Form.Get("timeLastRated")
-	queryResult := ratePartyHelper(partyID, facebookID, rating, timeLastRated)
+	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
+	queryResult := ratePartyHelper(partyID, facebookID, rating, timeLastRated, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -33,18 +34,19 @@ func rateBar(w http.ResponseWriter, r *http.Request) {
 	rating := r.Form.Get("rating")
 	status := r.Form.Get("status")
 	timeLastRated := r.Form.Get("timeLastRated")
+	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
 	var queryResult = QueryResult{}
 	if isMaleConvErr != nil {
 		queryResult.Error = "rateBar function: isMale parameter issue. " + isMaleConvErr.Error()
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult = rateBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated)
+	queryResult = rateBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-func ratePartyHelper(partyID string, facebookID string, rating string, timeLastRated string) QueryResult {
+func ratePartyHelper(partyID string, facebookID string, rating string, timeLastRated string, timeOfLastKnownLocation string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -67,11 +69,13 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 	stringAtParty := "atParty"
 	stringRating := "rating"
 	stringTimeLastRated := "timeLastRated"
+	stringTimeOfLastKnownLocation := "timeOfLastKnownLocation"
 	expressionAttributeNames["#i"] = &invitees
 	expressionAttributeNames["#f"] = &facebookID
 	expressionAttributeNames["#a"] = &stringAtParty
 	expressionAttributeNames["#r"] = &stringRating
 	expressionAttributeNames["#t"] = &stringTimeLastRated
+	expressionAttributeNames["#l"] = &stringTimeOfLastKnownLocation
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 	var atPartyAttributeValue = dynamodb.AttributeValue{}
 	atPartyAttributeValue.SetBOOL(true)
@@ -82,6 +86,9 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 	var timeLastRatedAttributeValue = dynamodb.AttributeValue{}
 	timeLastRatedAttributeValue.SetS(timeLastRated)
 	expressionValuePlaceholders[":timeLastRated"] = &timeLastRatedAttributeValue
+	var timeOfLastKnownLocationAttributeValue = dynamodb.AttributeValue{}
+	timeOfLastKnownLocationAttributeValue.SetS(timeOfLastKnownLocation)
+	expressionValuePlaceholders[":timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttributeValue
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
@@ -93,7 +100,7 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
 	updateItemInput.SetKey(keyMap)
 	updateItemInput.SetTableName("Party")
-	updateExpression := "SET #i.#f.#r=:rating, #i.#f.#a=:atParty, #i.#f.#t=:timeLastRated"
+	updateExpression := "SET #i.#f.#r=:rating, #i.#f.#a=:atParty, #i.#f.#t=:timeLastRated, #i.#f.#l=:timeOfLastKnownLocation"
 	updateItemInput.UpdateExpression = &updateExpression
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
 	var dynamodbCall = DynamodbCall{}
@@ -108,7 +115,7 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 	return queryResult
 }
 
-func rateBarHelper(barID string, facebookID string, isMale bool, name string, rating string, status string, timeLastRated string) QueryResult {
+func rateBarHelper(barID string, facebookID string, isMale bool, name string, rating string, status string, timeLastRated string, timeOfLastKnownLocation string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -140,18 +147,21 @@ func rateBarHelper(barID string, facebookID string, isMale bool, name string, ra
 	var ratingAttribute = dynamodb.AttributeValue{}
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
+	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
 	atBarAttribute.SetBOOL(true)
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
 	ratingAttribute.SetS(rating)
 	statusAttribute.SetS(status)
 	timeLastRatedAttribute.SetS(timeLastRated)
+	timeOfLastKnownLocationAttribute.SetS(timeOfLastKnownLocation)
 	attendeeMap["atBar"] = &atBarAttribute
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameAttribute
 	attendeeMap["rating"] = &ratingAttribute
 	attendeeMap["status"] = &statusAttribute
 	attendeeMap["timeLastRated"] = &timeLastRatedAttribute
+	attendeeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
 	attendee.SetM(attendeeMap)
 	expressionValuePlaceholders[":attendee"] = &attendee
 

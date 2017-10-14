@@ -71,6 +71,7 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 	rating := r.Form.Get("rating")
 	status := r.Form.Get("status")
 	timeLastRated := r.Form.Get("timeLastRated")
+	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
 
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
@@ -84,7 +85,7 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated)
+	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -95,6 +96,7 @@ func changeAtPartyStatus(w http.ResponseWriter, r *http.Request) {
 	partyID := r.Form.Get("partyID")
 	facebookID := r.Form.Get("facebookID")
 	atParty, atPartyConvErr := strconv.ParseBool(r.Form.Get("atParty"))
+	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	if atPartyConvErr != nil {
@@ -102,7 +104,7 @@ func changeAtPartyStatus(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult = changeAtPartyStatusHelper(partyID, facebookID, atParty)
+	queryResult = changeAtPartyStatusHelper(partyID, facebookID, atParty, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -118,6 +120,7 @@ func changeAtBarStatus(w http.ResponseWriter, r *http.Request) {
 	rating := r.Form.Get("rating")
 	status := r.Form.Get("status")
 	timeLastRated := r.Form.Get("timeLastRated")
+	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
 
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
@@ -131,7 +134,7 @@ func changeAtBarStatus(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated)
+	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -241,7 +244,7 @@ func barsCloseToMeHelper(latitude float64, longitude float64) QueryResult {
 	var scanItemsInput = dynamodb.ScanInput{}
 	scanItemsInput.SetTableName("Bar")
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
-	// approximately getting bars within a 100 mile radius
+	// approximately (it's a square not a circle) getting bars within a 100 mile radius
 	// # of degrees / 100 miles = 1.45 degrees of latitude
 	degreesOfLatitudeWhichEqual100Miles := 1.45
 	// # of degrees / 100 miles = (1 degree of longitude / (69.1703 * COS(Latitude * 0.0174533)) ) * 100 miles
@@ -341,7 +344,7 @@ func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, stat
 	return queryResult
 }
 
-func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, isMale bool, name string, rating string, status string, timeLastRated string) QueryResult {
+func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, isMale bool, name string, rating string, status string, timeLastRated string, timeOfLastKnownLocation string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -373,18 +376,21 @@ func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, i
 	var ratingAttribute = dynamodb.AttributeValue{}
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
+	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
 	atBarAttribute.SetBOOL(atBar)
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
 	ratingAttribute.SetS(rating)
 	statusAttribute.SetS(status)
 	timeLastRatedAttribute.SetS(timeLastRated)
+	timeOfLastKnownLocationAttribute.SetS(timeOfLastKnownLocation)
 	attendeeMap["atBar"] = &atBarAttribute
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameAttribute
 	attendeeMap["rating"] = &ratingAttribute
 	attendeeMap["status"] = &statusAttribute
 	attendeeMap["timeLastRated"] = &timeLastRatedAttribute
+	attendeeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
 	attendee.SetM(attendeeMap)
 	expressionValuePlaceholders[":attendee"] = &attendee
 
@@ -414,7 +420,7 @@ func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, i
 	return queryResult
 }
 
-func changeAtPartyStatusHelper(partyID string, facebookID string, atParty bool) QueryResult {
+func changeAtPartyStatusHelper(partyID string, facebookID string, atParty bool, timeOfLastKnownLocation string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -435,13 +441,18 @@ func changeAtPartyStatusHelper(partyID string, facebookID string, atParty bool) 
 	expressionAttributeNames := make(map[string]*string)
 	var invitees = "invitees"
 	stringAtParty := "atParty"
+	stringTimeOfLastKnownLocation := "timeOfLastKnownLocation"
 	expressionAttributeNames["#i"] = &invitees
 	expressionAttributeNames["#f"] = &facebookID
 	expressionAttributeNames["#a"] = &stringAtParty
+	expressionAttributeNames["#t"] = &stringTimeOfLastKnownLocation
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 	var atPartyAttributeValue = dynamodb.AttributeValue{}
+	var timeOfLastKnownLocationAttributeValue = dynamodb.AttributeValue{}
 	atPartyAttributeValue.SetBOOL(atParty)
+	timeOfLastKnownLocationAttributeValue.SetS(timeOfLastKnownLocation)
 	expressionValuePlaceholders[":atParty"] = &atPartyAttributeValue
+	expressionValuePlaceholders[":timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttributeValue
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
 	key.SetS(partyID)
@@ -452,7 +463,7 @@ func changeAtPartyStatusHelper(partyID string, facebookID string, atParty bool) 
 	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
 	updateItemInput.SetKey(keyMap)
 	updateItemInput.SetTableName("Party")
-	updateExpression := "SET #i.#f.#a=:atParty"
+	updateExpression := "SET #i.#f.#a=:atParty, #i.#f.#t=:timeOfLastKnownLocation"
 	updateItemInput.UpdateExpression = &updateExpression
 
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
@@ -486,6 +497,8 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool,
 	// constant in the past to make sure the invitee
 	//     can rate the party right away
 	timeLastRated := "2000-01-01T00:00:00Z"
+	// doesn't really matter what time is initially put in here
+	timeOfLastKnownLocation := "2000-01-01T00:00:00Z"
 
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
@@ -525,6 +538,7 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool,
 	var ratingAttribute = dynamodb.AttributeValue{}
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
+	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
 	atPartyAttribute.SetBOOL(false)
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
@@ -532,6 +546,7 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool,
 	ratingAttribute.SetS(rating)
 	statusAttribute.SetS(status)
 	timeLastRatedAttribute.SetS(timeLastRated)
+	timeOfLastKnownLocationAttribute.SetS(timeOfLastKnownLocation)
 	inviteeMap["atParty"] = &atPartyAttribute
 	inviteeMap["isMale"] = &isMaleAttribute
 	inviteeMap["name"] = &nameAttribute
@@ -539,6 +554,7 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool,
 	inviteeMap["rating"] = &ratingAttribute
 	inviteeMap["status"] = &statusAttribute
 	inviteeMap["timeLastRated"] = &timeLastRatedAttribute
+	inviteeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
 	invitee.SetM(inviteeMap)
 	expressionValuePlaceholders[":invitee"] = &invitee
 

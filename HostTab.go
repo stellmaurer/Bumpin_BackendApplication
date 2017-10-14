@@ -39,10 +39,7 @@ func createParty(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
 	name := r.Form.Get("name")
-	addressLine1 := r.Form.Get("addressLine1")
-	addressLine2 := r.Form.Get("addressLine2")
-	city := r.Form.Get("city")
-	country := r.Form.Get("country")
+	address := r.Form.Get("address")
 	details := r.Form.Get("details")
 	drinksProvided, drinksProvidedConvErr := strconv.ParseBool(r.Form.Get("drinksProvided"))
 	endTime := r.Form.Get("endTime")
@@ -52,9 +49,7 @@ func createParty(w http.ResponseWriter, r *http.Request) {
 	longitude := r.Form.Get("longitude")
 	partyID := strconv.FormatUint(getRandomID(), 10)
 	startTime := r.Form.Get("startTime")
-	stateProvinceRegion := r.Form.Get("stateProvinceRegion")
 	title := r.Form.Get("title")
-	zipCode := r.Form.Get("zipCode")
 	var queryResult = QueryResult{}
 	if isMaleConvErr != nil {
 		queryResult.Error = "createParty function: isMale parameter issue. " + isMaleConvErr.Error()
@@ -71,13 +66,10 @@ func createParty(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	if addressLine2 == "" {
-		addressLine2 = NULL
-	}
 	if details == "" {
 		details = NULL
 	}
-	queryResult = createPartyHelper(facebookID, isMale, name, addressLine1, addressLine2, city, country, details, drinksProvided, endTime, feeForDrinks, invitesForNewInvitees, latitude, longitude, partyID, startTime, stateProvinceRegion, title, zipCode)
+	queryResult = createPartyHelper(facebookID, isMale, name, address, details, drinksProvided, endTime, feeForDrinks, invitesForNewInvitees, latitude, longitude, partyID, startTime, title)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -89,20 +81,15 @@ func createBar(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
 	nameOfCreator := r.Form.Get("nameOfCreator")
-	addressLine1 := r.Form.Get("addressLine1")
-	addressLine2 := r.Form.Get("addressLine2")
+	address := r.Form.Get("address")
 	attendeesMapCleanUpHourInZulu := r.Form.Get("attendeesMapCleanUpHourInZulu")
 	barID := strconv.FormatUint(getRandomID(), 10)
-	city := r.Form.Get("city")
-	country := r.Form.Get("country")
 	details := r.Form.Get("details")
 	latitude := r.Form.Get("latitude")
 	longitude := r.Form.Get("longitude")
 	name := r.Form.Get("name")
 	phoneNumber := r.Form.Get("phoneNumber")
-	stateProvinceRegion := r.Form.Get("stateProvinceRegion")
 	timeZone := r.Form.Get("timeZone")
-	zipCode := r.Form.Get("zipCode")
 	mon := strings.Split(r.Form.Get("Mon"), ",")
 	tue := strings.Split(r.Form.Get("Tue"), ",")
 	wed := strings.Split(r.Form.Get("Wed"), ",")
@@ -131,13 +118,10 @@ func createBar(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	if addressLine2 == "" {
-		addressLine2 = NULL
-	}
 	if details == "" {
 		details = NULL
 	}
-	queryResult = createBarHelper(barKey, facebookID, isMale, nameOfCreator, addressLine1, addressLine2, attendeesMapCleanUpHourInZulu, barID, city, country, details, latitude, longitude, name, phoneNumber, schedule, stateProvinceRegion, timeZone, zipCode)
+	queryResult = createBarHelper(barKey, facebookID, isMale, nameOfCreator, address, attendeesMapCleanUpHourInZulu, barID, details, latitude, longitude, name, phoneNumber, schedule, timeZone)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -163,10 +147,7 @@ func deleteBar(w http.ResponseWriter, r *http.Request) {
 // Update a party's information
 func updateParty(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	addressLine1 := r.Form.Get("addressLine1")
-	addressLine2 := r.Form.Get("addressLine2")
-	city := r.Form.Get("city")
-	country := r.Form.Get("country")
+	address := r.Form.Get("address")
 	details := r.Form.Get("details")
 	drinksProvided, drinksProvidedConvErr := strconv.ParseBool(r.Form.Get("drinksProvided"))
 	endTime := r.Form.Get("endTime")
@@ -176,9 +157,7 @@ func updateParty(w http.ResponseWriter, r *http.Request) {
 	longitude := r.Form.Get("longitude")
 	partyID := r.Form.Get("partyID")
 	startTime := r.Form.Get("startTime")
-	stateProvinceRegion := r.Form.Get("stateProvinceRegion")
 	title := r.Form.Get("title")
-	zipCode := r.Form.Get("zipCode")
 	var queryResult = QueryResult{}
 	if drinksProvidedConvErr != nil {
 		queryResult.Error = "updateParty function: drinksProvided parameter issue. " + drinksProvidedConvErr.Error()
@@ -190,13 +169,10 @@ func updateParty(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	if addressLine2 == "" {
-		addressLine2 = NULL
-	}
 	if details == "" {
 		details = NULL
 	}
-	queryResult = updatePartyHelper(addressLine1, addressLine2, city, country, details, drinksProvided, endTime, feeForDrinks, invitesForNewInvitees, latitude, longitude, partyID, startTime, stateProvinceRegion, title, zipCode)
+	queryResult = updatePartyHelper(address, details, drinksProvided, endTime, feeForDrinks, invitesForNewInvitees, latitude, longitude, partyID, startTime, title)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -204,20 +180,15 @@ func updateParty(w http.ResponseWriter, r *http.Request) {
 // Update a bar's information
 func updateBar(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	addressLine1 := r.Form.Get("addressLine1")
-	addressLine2 := r.Form.Get("addressLine2")
+	address := r.Form.Get("address")
 	attendeesMapCleanUpHourInZulu := r.Form.Get("attendeesMapCleanUpHourInZulu")
 	barID := r.Form.Get("barID")
-	city := r.Form.Get("city")
-	country := r.Form.Get("country")
 	details := r.Form.Get("details")
 	latitude := r.Form.Get("latitude")
 	longitude := r.Form.Get("longitude")
 	name := r.Form.Get("name")
 	phoneNumber := r.Form.Get("phoneNumber")
-	stateProvinceRegion := r.Form.Get("stateProvinceRegion")
 	timeZone := r.Form.Get("timeZone")
-	zipCode := r.Form.Get("zipCode")
 	mon := strings.Split(r.Form.Get("Mon"), ",")
 	tue := strings.Split(r.Form.Get("Tue"), ",")
 	wed := strings.Split(r.Form.Get("Wed"), ",")
@@ -240,13 +211,10 @@ func updateBar(w http.ResponseWriter, r *http.Request) {
 	schedule["Friday"] = scheduleForFriday
 	schedule["Saturday"] = scheduleForSaturday
 	schedule["Sunday"] = scheduleForSunday
-	if addressLine2 == "" {
-		addressLine2 = NULL
-	}
 	if details == "" {
 		details = NULL
 	}
-	queryResult := updateBarHelper(addressLine1, addressLine2, attendeesMapCleanUpHourInZulu, barID, city, country, details, latitude, longitude, name, phoneNumber, schedule, stateProvinceRegion, timeZone, zipCode)
+	queryResult := updateBarHelper(address, attendeesMapCleanUpHourInZulu, barID, details, latitude, longitude, name, phoneNumber, schedule, timeZone)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -531,7 +499,7 @@ func deleteBarKeyHelper(key string) QueryResult {
 	return queryResult
 }
 
-func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreator string, addressLine1 string, addressLine2 string, attendeesMapCleanUpHourInZulu string, barID string, city string, country string, details string, latitude string, longitude string, name string, phoneNumber string, schedule map[string]ScheduleForDay, stateProvinceRegion string, timeZone string, zipCode string) QueryResult {
+func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreator string, address string, attendeesMapCleanUpHourInZulu string, barID string, details string, latitude string, longitude string, name string, phoneNumber string, schedule map[string]ScheduleForDay, timeZone string) QueryResult {
 	queryResult := getBarKeyHelper(barKey)
 	if queryResult.Succeeded == false {
 		return queryResult
@@ -557,69 +525,61 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
 	// Finally
 	expressionValues := make(map[string]*dynamodb.AttributeValue)
-	var addressLine1AttributeValue = dynamodb.AttributeValue{}
-	var addressLine2AttributeValue = dynamodb.AttributeValue{}
+	var addressAttributeValue = dynamodb.AttributeValue{}
 	var attendeesMapCleanUpHourInZuluAttributeValue = dynamodb.AttributeValue{}
 	var barIDAttributeValue = dynamodb.AttributeValue{}
-	var cityAttributeValue = dynamodb.AttributeValue{}
-	var countryAttributeValue = dynamodb.AttributeValue{}
 	var detailsAttributeValue = dynamodb.AttributeValue{}
 	var latitudeAttributeValue = dynamodb.AttributeValue{}
 	var longitudeAttributeValue = dynamodb.AttributeValue{}
 	var nameAttributeValue = dynamodb.AttributeValue{}
 	var phoneNumberAttributeValue = dynamodb.AttributeValue{}
-	var stateProvinceRegionAttributeValue = dynamodb.AttributeValue{}
 	var timeZoneAttributeValue = dynamodb.AttributeValue{}
-	var zipCodeAttributeValue = dynamodb.AttributeValue{}
-	addressLine1AttributeValue.SetS(addressLine1)
-	addressLine2AttributeValue.SetS(addressLine2)
+	addressAttributeValue.SetS(address)
 	attendeesMapCleanUpHourInZuluAttributeValue.SetN(attendeesMapCleanUpHourInZulu)
 	barIDAttributeValue.SetS(barID)
-	cityAttributeValue.SetS(city)
-	countryAttributeValue.SetS(country)
 	detailsAttributeValue.SetS(details)
 	latitudeAttributeValue.SetN(latitude)
 	longitudeAttributeValue.SetN(longitude)
 	nameAttributeValue.SetS(name)
 	phoneNumberAttributeValue.SetS(phoneNumber)
-	stateProvinceRegionAttributeValue.SetS(stateProvinceRegion)
 	timeZoneAttributeValue.SetN(timeZone)
-	zipCodeAttributeValue.SetN(zipCode)
-	expressionValues["addressLine1"] = &addressLine1AttributeValue
-	expressionValues["addressLine2"] = &addressLine2AttributeValue
+	expressionValues["address"] = &addressAttributeValue
 	expressionValues["attendeesMapCleanUpHourInZulu"] = &attendeesMapCleanUpHourInZuluAttributeValue
 	expressionValues["barID"] = &barIDAttributeValue
-	expressionValues["city"] = &cityAttributeValue
-	expressionValues["country"] = &countryAttributeValue
 	expressionValues["details"] = &detailsAttributeValue
 	expressionValues["latitude"] = &latitudeAttributeValue
 	expressionValues["longitude"] = &longitudeAttributeValue
 	expressionValues["name"] = &nameAttributeValue
 	expressionValues["phoneNumber"] = &phoneNumberAttributeValue
-	expressionValues["stateProvinceRegion"] = &stateProvinceRegionAttributeValue
 	expressionValues["timeZone"] = &timeZoneAttributeValue
-	expressionValues["zipCode"] = &zipCodeAttributeValue
 
 	// set yourself as an attendee to your own bar so that you can rate it
 	attendeesMap := make(map[string]*dynamodb.AttributeValue)
 	var attendees = dynamodb.AttributeValue{}
 	attendeeMap := make(map[string]*dynamodb.AttributeValue)
 	var attendee = dynamodb.AttributeValue{}
+	var atBarAttribute = dynamodb.AttributeValue{}
 	var isMaleAttribute = dynamodb.AttributeValue{}
 	var nameOfCreatorAttribute = dynamodb.AttributeValue{}
 	var ratingAttribute = dynamodb.AttributeValue{}
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
+	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
+	atBarAttribute.SetBOOL(false)
 	isMaleAttribute.SetBOOL(isMale)
 	nameOfCreatorAttribute.SetS(nameOfCreator)
 	ratingAttribute.SetS("None")
 	statusAttribute.SetS("Maybe")
 	timeLastRatedAttribute.SetS("2000-01-01T00:00:00Z")
+	timeOfLastKnownLocationAttribute.SetS("2000-01-01T00:00:00Z")
+	attendeeMap["atBar"] = &atBarAttribute
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameOfCreatorAttribute
 	attendeeMap["rating"] = &ratingAttribute
 	attendeeMap["status"] = &statusAttribute
 	attendeeMap["timeLastRated"] = &timeLastRatedAttribute
+	attendeeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
+
 	attendee.SetM(attendeeMap)
 	attendeesMap[facebookID] = &attendee
 	attendees.SetM(attendeesMap)
@@ -768,7 +728,7 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	return queryResult
 }
 
-func createPartyHelper(facebookID string, isMale bool, name string, addressLine1 string, addressLine2 string, city string, country string, details string, drinksProvided bool, endTime string, feeForDrinks bool, invitesForNewInvitees string, latitude string, longitude string, partyID string, startTime string, stateProvinceRegion string, title string, zipCode string) QueryResult {
+func createPartyHelper(facebookID string, isMale bool, name string, address string, details string, drinksProvided bool, endTime string, feeForDrinks bool, invitesForNewInvitees string, latitude string, longitude string, partyID string, startTime string, title string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
@@ -787,10 +747,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
 	// Finally
 	expressionValues := make(map[string]*dynamodb.AttributeValue)
-	var addressLine1AttributeValue = dynamodb.AttributeValue{}
-	var addressLine2AttributeValue = dynamodb.AttributeValue{}
-	var cityAttributeValue = dynamodb.AttributeValue{}
-	var countryAttributeValue = dynamodb.AttributeValue{}
+	var addressAttributeValue = dynamodb.AttributeValue{}
 	var detailsAttributeValue = dynamodb.AttributeValue{}
 	var drinksProvidedAttributeValue = dynamodb.AttributeValue{}
 	var endTimeAttributeValue = dynamodb.AttributeValue{}
@@ -800,14 +757,9 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	var longitudeAttributeValue = dynamodb.AttributeValue{}
 	var partyIDAttributeValue = dynamodb.AttributeValue{}
 	var startTimeAttributeValue = dynamodb.AttributeValue{}
-	var stateProvinceRegionAttributeValue = dynamodb.AttributeValue{}
 	var titleAttributeValue = dynamodb.AttributeValue{}
-	var zipCodeAttributeValue = dynamodb.AttributeValue{}
 	invitesForNewInviteesAttributeValue.SetN(invitesForNewInvitees)
-	addressLine1AttributeValue.SetS(addressLine1)
-	addressLine2AttributeValue.SetS(addressLine2)
-	cityAttributeValue.SetS(city)
-	countryAttributeValue.SetS(country)
+	addressAttributeValue.SetS(address)
 	detailsAttributeValue.SetS(details)
 	drinksProvidedAttributeValue.SetBOOL(drinksProvided)
 	endTimeAttributeValue.SetS(endTime)
@@ -817,13 +769,8 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	longitudeAttributeValue.SetN(longitude)
 	partyIDAttributeValue.SetS(partyID)
 	startTimeAttributeValue.SetS(startTime)
-	stateProvinceRegionAttributeValue.SetS(stateProvinceRegion)
 	titleAttributeValue.SetS(title)
-	zipCodeAttributeValue.SetN(zipCode)
-	expressionValues["addressLine1"] = &addressLine1AttributeValue
-	expressionValues["addressLine2"] = &addressLine2AttributeValue
-	expressionValues["city"] = &cityAttributeValue
-	expressionValues["country"] = &countryAttributeValue
+	expressionValues["address"] = &addressAttributeValue
 	expressionValues["details"] = &detailsAttributeValue
 	expressionValues["drinksProvided"] = &drinksProvidedAttributeValue
 	expressionValues["endTime"] = &endTimeAttributeValue
@@ -833,9 +780,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	expressionValues["longitude"] = &longitudeAttributeValue
 	expressionValues["partyID"] = &partyIDAttributeValue
 	expressionValues["startTime"] = &startTimeAttributeValue
-	expressionValues["stateProvinceRegion"] = &stateProvinceRegionAttributeValue
 	expressionValues["title"] = &titleAttributeValue
-	expressionValues["zipCode"] = &zipCodeAttributeValue
 
 	// set yourself as an invitee to your own party so that you can rate it
 	inviteesMap := make(map[string]*dynamodb.AttributeValue)
@@ -849,6 +794,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	var statusAttribute = dynamodb.AttributeValue{}
 	var atPartyAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
+	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
 	numberOfInvitationsLeftAttribute.SetN("0")
@@ -856,6 +802,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	statusAttribute.SetS("Going")
 	atPartyAttribute.SetBOOL(false)
 	timeLastRatedAttribute.SetS("2000-01-01T00:00:00Z")
+	timeOfLastKnownLocationAttribute.SetS("2000-01-01T00:00:00Z")
 	inviteeMap["isMale"] = &isMaleAttribute
 	inviteeMap["name"] = &nameAttribute
 	inviteeMap["numberOfInvitationsLeft"] = &numberOfInvitationsLeftAttribute
@@ -863,6 +810,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	inviteeMap["atParty"] = &atPartyAttribute
 	inviteeMap["status"] = &statusAttribute
 	inviteeMap["timeLastRated"] = &timeLastRatedAttribute
+	inviteeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
 	invitee.SetM(inviteeMap)
 	inviteesMap[facebookID] = &invitee
 	invitees.SetM(inviteesMap)
@@ -939,7 +887,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, addressLine1
 	return queryResult
 }
 
-func updatePartyHelper(addressLine1 string, addressLine2 string, city string, country string, details string, drinksProvided bool, endTime string, feeForDrinks bool, invitesForNewInvitees string, latitude string, longitude string, partyID string, startTime string, stateProvinceRegion string, title string, zipCode string) QueryResult {
+func updatePartyHelper(address string, details string, drinksProvided bool, endTime string, feeForDrinks bool, invitesForNewInvitees string, latitude string, longitude string, partyID string, startTime string, title string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -958,10 +906,7 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
 	// Finally
 	expressionAttributeNames := make(map[string]*string)
-	var addressLine1String = "addressLine1"
-	var addressLine2String = "addressLine2"
-	var cityString = "city"
-	var countryString = "country"
+	var addressString = "address"
 	var detailsString = "details"
 	var drinksProvidedString = "drinksProvided"
 	var endTimeString = "endTime"
@@ -970,13 +915,8 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	var latitudeString = "latitude"
 	var longitudeString = "longitude"
 	var startTimeString = "startTime"
-	var stateProvinceRegionString = "stateProvinceRegion"
 	var titleString = "title"
-	var zipCodeString = "zipCode"
-	expressionAttributeNames["#addressLine1"] = &addressLine1String
-	expressionAttributeNames["#addressLine2"] = &addressLine2String
-	expressionAttributeNames["#city"] = &cityString
-	expressionAttributeNames["#country"] = &countryString
+	expressionAttributeNames["#address"] = &addressString
 	expressionAttributeNames["#details"] = &detailsString
 	expressionAttributeNames["#drinksProvided"] = &drinksProvidedString
 	expressionAttributeNames["#endTime"] = &endTimeString
@@ -985,14 +925,9 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	expressionAttributeNames["#latitude"] = &latitudeString
 	expressionAttributeNames["#longitude"] = &longitudeString
 	expressionAttributeNames["#startTime"] = &startTimeString
-	expressionAttributeNames["#stateProvinceRegion"] = &stateProvinceRegionString
 	expressionAttributeNames["#title"] = &titleString
-	expressionAttributeNames["#zipCode"] = &zipCodeString
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
-	var addressLine1AttributeValue = dynamodb.AttributeValue{}
-	var addressLine2AttributeValue = dynamodb.AttributeValue{}
-	var cityAttributeValue = dynamodb.AttributeValue{}
-	var countryAttributeValue = dynamodb.AttributeValue{}
+	var addressAttributeValue = dynamodb.AttributeValue{}
 	var detailsAttributeValue = dynamodb.AttributeValue{}
 	var drinksProvidedAttributeValue = dynamodb.AttributeValue{}
 	var endTimeAttributeValue = dynamodb.AttributeValue{}
@@ -1001,13 +936,8 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	var latitudeAttributeValue = dynamodb.AttributeValue{}
 	var longitudeAttributeValue = dynamodb.AttributeValue{}
 	var startTimeAttributeValue = dynamodb.AttributeValue{}
-	var stateProvinceRegionAttributeValue = dynamodb.AttributeValue{}
 	var titleAttributeValue = dynamodb.AttributeValue{}
-	var zipCodeAttributeValue = dynamodb.AttributeValue{}
-	addressLine1AttributeValue.SetS(addressLine1)
-	addressLine2AttributeValue.SetS(addressLine2)
-	cityAttributeValue.SetS(city)
-	countryAttributeValue.SetS(country)
+	addressAttributeValue.SetS(address)
 	detailsAttributeValue.SetS(details)
 	drinksProvidedAttributeValue.SetBOOL(drinksProvided)
 	endTimeAttributeValue.SetS(endTime)
@@ -1016,13 +946,8 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	latitudeAttributeValue.SetN(latitude)
 	longitudeAttributeValue.SetN(longitude)
 	startTimeAttributeValue.SetS(startTime)
-	stateProvinceRegionAttributeValue.SetS(stateProvinceRegion)
 	titleAttributeValue.SetS(title)
-	zipCodeAttributeValue.SetN(zipCode)
-	expressionValuePlaceholders[":addressLine1"] = &addressLine1AttributeValue
-	expressionValuePlaceholders[":addressLine2"] = &addressLine2AttributeValue
-	expressionValuePlaceholders[":city"] = &cityAttributeValue
-	expressionValuePlaceholders[":country"] = &countryAttributeValue
+	expressionValuePlaceholders[":address"] = &addressAttributeValue
 	expressionValuePlaceholders[":details"] = &detailsAttributeValue
 	expressionValuePlaceholders[":drinksProvided"] = &drinksProvidedAttributeValue
 	expressionValuePlaceholders[":endTime"] = &endTimeAttributeValue
@@ -1031,9 +956,7 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	expressionValuePlaceholders[":latitude"] = &latitudeAttributeValue
 	expressionValuePlaceholders[":longitude"] = &longitudeAttributeValue
 	expressionValuePlaceholders[":startTime"] = &startTimeAttributeValue
-	expressionValuePlaceholders[":stateProvinceRegion"] = &stateProvinceRegionAttributeValue
 	expressionValuePlaceholders[":title"] = &titleAttributeValue
-	expressionValuePlaceholders[":zipCode"] = &zipCodeAttributeValue
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
 	key.SetS(partyID)
@@ -1044,7 +967,7 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
 	updateItemInput.SetKey(keyMap)
 	updateItemInput.SetTableName("Party")
-	updateExpression := "SET #addressLine1=:addressLine1, #addressLine2=:addressLine2, #city=:city, #country=:country, #details=:details, #drinksProvided=:drinksProvided, #endTime=:endTime, #feeForDrinks=:feeForDrinks, #invitesForNewInvitees=:invitesForNewInvitees, #latitude=:latitude, #longitude=:longitude, #startTime=:startTime, #stateProvinceRegion=:stateProvinceRegion, #title=:title, #zipCode=:zipCode"
+	updateExpression := "SET #address=:address, #details=:details, #drinksProvided=:drinksProvided, #endTime=:endTime, #feeForDrinks=:feeForDrinks, #invitesForNewInvitees=:invitesForNewInvitees, #latitude=:latitude, #longitude=:longitude, #startTime=:startTime, #title=:title"
 	updateItemInput.UpdateExpression = &updateExpression
 
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
@@ -1060,7 +983,7 @@ func updatePartyHelper(addressLine1 string, addressLine2 string, city string, co
 	return queryResult
 }
 
-func updateBarHelper(addressLine1 string, addressLine2 string, attendeesMapCleanUpHourInZulu string, barID string, city string, country string, details string, latitude string, longitude string, name string, phoneNumber string, schedule map[string]ScheduleForDay, stateProvinceRegion string, timeZone string, zipCode string) QueryResult {
+func updateBarHelper(address string, attendeesMapCleanUpHourInZulu string, barID string, details string, latitude string, longitude string, name string, phoneNumber string, schedule map[string]ScheduleForDay, timeZone string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -1081,74 +1004,49 @@ func updateBarHelper(addressLine1 string, addressLine2 string, attendeesMapClean
 
 	// switch: startTime to openAt
 	expressionAttributeNames := make(map[string]*string)
-	var addressLine1String = "addressLine1"
-	var addressLine2String = "addressLine2"
+	var addressString = "address"
 	var attendeesMapCleanUpHourInZuluString = "attendeesMapCleanUpHourInZulu"
-	var cityString = "city"
-	var countryString = "country"
 	var detailsString = "details"
 	var latitudeString = "latitude"
 	var longitudeString = "longitude"
 	var nameString = "name"
 	var phoneNumberString = "phoneNumber"
 	var scheduleString = "schedule"
-	var stateProvinceRegionString = "stateProvinceRegion"
 	var timeZoneString = "timeZone"
-	var zipCodeString = "zipCode"
-	expressionAttributeNames["#addressLine1"] = &addressLine1String
-	expressionAttributeNames["#addressLine2"] = &addressLine2String
+	expressionAttributeNames["#address"] = &addressString
 	expressionAttributeNames["#attendeesMapCleanUpHourInZulu"] = &attendeesMapCleanUpHourInZuluString
-	expressionAttributeNames["#city"] = &cityString
-	expressionAttributeNames["#country"] = &countryString
 	expressionAttributeNames["#details"] = &detailsString
 	expressionAttributeNames["#latitude"] = &latitudeString
 	expressionAttributeNames["#longitude"] = &longitudeString
 	expressionAttributeNames["#name"] = &nameString
 	expressionAttributeNames["#phoneNumber"] = &phoneNumberString
 	expressionAttributeNames["#schedule"] = &scheduleString
-	expressionAttributeNames["#stateProvinceRegion"] = &stateProvinceRegionString
 	expressionAttributeNames["#timeZone"] = &timeZoneString
-	expressionAttributeNames["#zipCode"] = &zipCodeString
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
-	var addressLine1AttributeValue = dynamodb.AttributeValue{}
-	var addressLine2AttributeValue = dynamodb.AttributeValue{}
+	var addressAttributeValue = dynamodb.AttributeValue{}
 	var attendeesMapCleanUpHourInZuluAttributeValue = dynamodb.AttributeValue{}
-	var cityAttributeValue = dynamodb.AttributeValue{}
-	var countryAttributeValue = dynamodb.AttributeValue{}
 	var detailsAttributeValue = dynamodb.AttributeValue{}
 	var latitudeAttributeValue = dynamodb.AttributeValue{}
 	var longitudeAttributeValue = dynamodb.AttributeValue{}
 	var nameAttributeValue = dynamodb.AttributeValue{}
 	var phoneNumberAttributeValue = dynamodb.AttributeValue{}
-	var stateProvinceRegionAttributeValue = dynamodb.AttributeValue{}
 	var timeZoneAttributeValue = dynamodb.AttributeValue{}
-	var zipCodeAttributeValue = dynamodb.AttributeValue{}
-	addressLine1AttributeValue.SetS(addressLine1)
-	addressLine2AttributeValue.SetS(addressLine2)
+	addressAttributeValue.SetS(address)
 	attendeesMapCleanUpHourInZuluAttributeValue.SetN(attendeesMapCleanUpHourInZulu)
-	cityAttributeValue.SetS(city)
-	countryAttributeValue.SetS(country)
 	detailsAttributeValue.SetS(details)
 	latitudeAttributeValue.SetN(latitude)
 	longitudeAttributeValue.SetN(longitude)
 	nameAttributeValue.SetS(name)
 	phoneNumberAttributeValue.SetS(phoneNumber)
-	stateProvinceRegionAttributeValue.SetS(stateProvinceRegion)
 	timeZoneAttributeValue.SetN(timeZone)
-	zipCodeAttributeValue.SetN(zipCode)
-	expressionValuePlaceholders[":addressLine1"] = &addressLine1AttributeValue
-	expressionValuePlaceholders[":addressLine2"] = &addressLine2AttributeValue
+	expressionValuePlaceholders[":address"] = &addressAttributeValue
 	expressionValuePlaceholders[":attendeesMapCleanUpHourInZulu"] = &attendeesMapCleanUpHourInZuluAttributeValue
-	expressionValuePlaceholders[":city"] = &cityAttributeValue
-	expressionValuePlaceholders[":country"] = &countryAttributeValue
 	expressionValuePlaceholders[":details"] = &detailsAttributeValue
 	expressionValuePlaceholders[":latitude"] = &latitudeAttributeValue
 	expressionValuePlaceholders[":longitude"] = &longitudeAttributeValue
 	expressionValuePlaceholders[":name"] = &nameAttributeValue
 	expressionValuePlaceholders[":phoneNumber"] = &phoneNumberAttributeValue
-	expressionValuePlaceholders[":stateProvinceRegion"] = &stateProvinceRegionAttributeValue
 	expressionValuePlaceholders[":timeZone"] = &timeZoneAttributeValue
-	expressionValuePlaceholders[":zipCode"] = &zipCodeAttributeValue
 
 	scheduleMap := make(map[string]*dynamodb.AttributeValue)
 	var theSchedule = dynamodb.AttributeValue{}
@@ -1235,7 +1133,7 @@ func updateBarHelper(addressLine1 string, addressLine2 string, attendeesMapClean
 	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
 	updateItemInput.SetKey(keyMap)
 	updateItemInput.SetTableName("Bar")
-	updateExpression := "SET #addressLine1=:addressLine1, #addressLine2=:addressLine2, #attendeesMapCleanUpHourInZulu=:attendeesMapCleanUpHourInZulu, #city=:city, #country=:country, #details=:details, #latitude=:latitude, #longitude=:longitude, #name=:name, #phoneNumber=:phoneNumber, #schedule=:schedule, #stateProvinceRegion=:stateProvinceRegion, #timeZone=:timeZone, #zipCode=:zipCode"
+	updateExpression := "SET #address=:address, #attendeesMapCleanUpHourInZulu=:attendeesMapCleanUpHourInZulu, #details=:details, #latitude=:latitude, #longitude=:longitude, #name=:name, #phoneNumber=:phoneNumber, #schedule=:schedule, #timeZone=:timeZone"
 	updateItemInput.UpdateExpression = &updateExpression
 
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
