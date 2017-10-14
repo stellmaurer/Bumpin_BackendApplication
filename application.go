@@ -3,11 +3,11 @@ package main
 import "net/http"
 
 func main() {
-	//curl http://localhost:5000/createParty -d "facebookID=30&isMale=true&name=Zander%20Dunn&addressLine1=201%20River%20St&city=River%20Hills&country=United%20States&drinksProvided=true&endTime=2017-05-20T00:00:00Z&feeForDrinks=false&invitesForNewInvitees=1&latitude=-59&longitude=42&startTime=2015-01-18T00:00:00Z&stateProvinceRegion=Wisconsin&title=Baseball%20Party&zipCode=53215"
+	//curl http://localhost:5000/createParty -d "facebookID=30&isMale=true&name=Zander%20Dunn&address=201%20River%20St%20River%20Hills%20WI%2053215&drinksProvided=true&endTime=2017-05-20T00:00:00Z&feeForDrinks=false&invitesForNewInvitees=1&latitude=-59&longitude=42&startTime=2015-01-18T00:00:00Z&title=Baseball%20Party"
 	//curl http://localhost:5000/askFriendToHostPartyWithYou -d "partyID=11154013587666973726&friendFacebookID=010101&name=Gerrard%20Holler"
 	//curl http://localhost:5000/inviteFriendToParty -d "partyID=11154013587666973726&myFacebookID=30&isHost=true&numberOfInvitesToGive=4&friendFacebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
 
-	//curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=12345699033&isMale=false&name=Sarah%20Carlson&addressLine1=201%20University%20Ave&city=Palo%20Alto&country=United%20States&drinksProvided=true&endTime=2017-05-20T09:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=-122.161694&longitude=37.446406&startTime=2017-05-19T04:30:00Z&stateProvinceRegion=California&title=PartyToEndItAll&zipCode=94045"
+	//curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=12345699033&isMale=false&name=Sarah%20Carlson&address=201%20University%20Ave%20Palo%20Alto%20CA%2094045&drinksProvided=true&endTime=2017-05-20T09:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=-122.161694&longitude=37.446406&startTime=2017-05-19T04:30:00Z&title=PartyToEndItAll"
 	//curl http://localhost:5000/askFriendToHostPartyWithYou -d "partyID=12258969221770119542&friendFacebookID=010101&name=Gerrard%20Holler"
 	//curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/inviteFriendToParty -d "partyID=4957609079704639501&myFacebookID=12345699033&isHost=true&numberOfInvitesToGive=4&friendFacebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
 	/*
@@ -55,8 +55,8 @@ func main() {
 	/*
 		Rate tab queries
 	*/
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=10583166241324703384&facebookID=10155613117039816&rating=Heating%20Up&timeLastRated=2017-03-04T00:57:00Z&timeOfLastKnownLocation=2017-03-04T00:00:00Z"
-	// curl http://localhost:5000/rateParty -d "partyID=3005619273277206682&facebookID=10155613117039816&rating=Heating%20Up&timeLastRated=2017-03-04T00:57:00Z&timeOfLastKnownLocation=2017-03-04T00:00:00Z"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=10583166241324703384&facebookID=10155613117039816&rating=Heat%27n%20Up&timeLastRated=2017-03-04T00:57:00Z&timeOfLastKnownLocation=2017-03-04T00:00:00Z"
+	// curl http://localhost:5000/rateParty -d "partyID=3005619273277206682&facebookID=10155613117039816&rating=Heat%27n%20Up&timeLastRated=2017-03-04T00:57:00Z&timeOfLastKnownLocation=2017-03-04T00:00:00Z"
 	go http.HandleFunc("/rateParty", rateParty)
 	// curl http://localhost:5000/rateBar -d "barID=4454693418154387750&facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer&rating=Weak&status=Going&timeLastRated=2017-03-04T01:25:00Z&timeOfLastKnownLocation=2017-03-04T01:00:00Z"
 	go http.HandleFunc("/rateBar", rateBar)
@@ -64,22 +64,22 @@ func main() {
 	/*
 		Host tab queries
 	*/
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=000037&isMale=true&name=Stephen%20Ellmaurer&addressLine1=blah1&city=Fox%20Point&country=United%20States&drinksProvided=true&endTime=2017-02-03T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=-34&longitude=12&startTime=2017-02-01T22:00:00Z&stateProvinceRegion=Wisconsin&title=Badger%20Bash&zipCode=53217"
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&addressLine1=550%20W%20Main%20St&city=Madison&country=United%20States&drinksProvided=true&endTime=2017-04-08T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=43.068284&longitude=-89.391325&startTime=2017-04-08T22:00:00Z&stateProvinceRegion=Wisconsin&title=Lisa's%20Birthday&zipCode=53703"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=000037&isMale=true&name=Zander%20Blah&address=415%20E%20Bradley%20Rd%20Fox%20Point%20Wisconsin%2053217&drinksProvided=true&endTime=2017-12-03T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=43.161847&longitude=-87.903058&startTime=2017-12-02T22:00:00Z&title=Badger%20Bash"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&address=550%20W%20Main%20St%20Madison%2053703&drinksProvided=true&endTime=2017-04-08T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=43.068284&longitude=-89.391325&startTime=2017-04-08T22:00:00Z&title=Lisa's%20Birthday"
 	go http.HandleFunc("/createParty", createParty)
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=gevEdUSDRlVIKPkQ&facebookID=1222222&isMale=false&nameOfCreator=Eva%20Catarina&addressLine1=1421%20Regent%20St&attendeesMapCleanUpHourInZulu=9&city=Madison&country=United%20States&details=Sports%20Bar&latitude=43.067615&longitude=-89.410205&name=SconnieBar&phoneNumber=608-819-8610&stateProvinceRegion=Wisconsin&timeZone=32&zipCode=53711&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=0q8jQL9QYIL2L3jz&facebookID=09876&isMale=false&nameOfCreator=Susan%20Ellmaurer&addressLine1=100%20N%20Los%20Angeles%20Rd&attendeesMapCleanUpHourInZulu=20&city=Los%20Angeles&country=United%20States&details=A%20bar%20for%20moms.&latitude=18&longitude=-129&name=Women&phoneNumber=608-114-2323&stateProvinceRegion=California&timeZone=6&zipCode=99031&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
-	// curl http://localhost:5000/createBar -d "barKey=xS32Bk4pBAeRQRFF&facebookID=1222222&isMale=false&nameOfCreator=Eva%20Catarina&addressLine1=1421%20Regent%20St&attendeesMapCleanUpHourInZulu=9&city=Madison&country=United%20States&details=Sports%20Bar&latitude=43.067615&longitude=-89.410205&name=SconnieBar&phoneNumber=608-819-8610&stateProvinceRegion=Wisconsin&timeZone=32&zipCode=53711&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
-	// curl http://localhost:5000/createBar -d "barKey=UgOMLPkCYUZ1fbfe&facebookID=09876&isMale=false&nameOfCreator=Susan%20Ellmaurer&addressLine1=100%20N%20Los%20Angeles%20Rd&attendeesMapCleanUpHourInZulu=20&city=Los%20Angeles&country=United%20States&details=A%20bar%20for%20moms.&latitude=18&longitude=-129&name=Women&phoneNumber=608-114-2323&stateProvinceRegion=California&timeZone=6&zipCode=99031&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=gevEdUSDRlVIKPkQ&facebookID=1222222&isMale=false&nameOfCreator=Eva%20Catarina&address=1421%20Regent%20St%20Madison%20WI%2053711&attendeesMapCleanUpHourInZulu=9&details=Sports%20Bar&latitude=43.067615&longitude=-89.410205&name=SconnieBar&phoneNumber=608-819-8610&timeZone=32&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=0q8jQL9QYIL2L3jz&facebookID=09876&isMale=false&nameOfCreator=Susan%20Ellmaurer&address=100%20N%20Los%20Angeles%20Rd%20Los%20Angeles%20California%2099031&attendeesMapCleanUpHourInZulu=20&details=A%20bar%20for%20moms.&latitude=18&longitude=-129&name=Women&phoneNumber=608-114-2323&timeZone=6&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
+	// curl http://localhost:5000/createBar -d "barKey=xS32Bk4pBAeRQRFF&facebookID=1222222&isMale=false&nameOfCreator=Eva%20Catarina&address=1421%20Regent%20St%20Madison%20WI%2053711&attendeesMapCleanUpHourInZulu=9&details=Sports%20Bar&latitude=43.067615&longitude=-89.410205&name=SconnieBar&phoneNumber=608-819-8610&timeZone=32&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
+	// curl http://localhost:5000/createBar -d "barKey=UgOMLPkCYUZ1fbfe&facebookID=09876&isMale=false&nameOfCreator=Susan%20Ellmaurer&address=100%20N%20Los%20Angeles%20Rd%20Los%20Angeles%20CA%2099031&attendeesMapCleanUpHourInZulu=20&details=A%20bar%20for%20moms.&latitude=18&longitude=-129&name=Women&phoneNumber=608-114-2323&timeZone=6&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
 	go http.HandleFunc("/createBar", createBar)
 	// curl http://localhost:5000/deleteParty -d "partyID=5233516922553495941"
 	go http.HandleFunc("/deleteParty", deleteParty)
 	// curl http://localhost:5000/deleteBar -d "barID=2629732187453375056"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteBar -d "barID=218591820409326495"
 	go http.HandleFunc("/deleteBar", deleteBar)
-	// curl http://localhost:5000/updateParty -d "partyID=12258969221770119542&addressLine1=University%20of%20Milwaukee%20Dorms&city=Milwaukee&country=United%20States&details=none&drinksProvided=true&endTime=2016-02-03T02:00:00Z&feeForDrinks=true&invitesForNewInvitees=3&latitude=33&longitude=77&startTime=2016-02-02T19:02:00Z&stateProvinceRegion=Wisconsin&title=Panther%20Game&zipCode=56677"
+	// curl http://localhost:5000/updateParty -d "partyID=12258969221770119542&address=University%20of%20Milwaukee%20Dorms%20Milwaukee%20WI%2056677&details=none&drinksProvided=true&endTime=2016-02-03T02:00:00Z&feeForDrinks=true&invitesForNewInvitees=3&latitude=33&longitude=77&startTime=2016-02-02T19:02:00Z&title=Panther%20Game"
 	go http.HandleFunc("/updateParty", updateParty)
-	// curl http://localhost:5000/updateBar -d "barID=17664650520329034593&addressLine1=84%20Strip%20Terrace&attendeesMapCleanUpHourInZulu=21&city=LA&country=United%20States&details=none&latitude=18&longitude=-129&name=Women&phoneNumber=902-555-3001&stateProvinceRegion=CA&timeZone=7&zipCode=99031&Mon=4PM-4AM,3:30AM&Tue=4PM-4AM,3:30AM&Wed=4PM-4AM,3:30AM&Thu=2PM-4AM,3:30AM&Fri=10AM-4AM,3:30AM&Sat=8AM-4AM,3:30AM&Sun=8AM-2AM,1:45AM"
+	// curl http://localhost:5000/updateBar -d "barID=17664650520329034593&address=84%20Strip%20Terrace%20LA%20CA%2099031&attendeesMapCleanUpHourInZulu=21&details=none&latitude=18&longitude=-129&name=Women&phoneNumber=902-555-3001&timeZone=7&Mon=4PM-4AM,3:30AM&Tue=4PM-4AM,3:30AM&Wed=4PM-4AM,3:30AM&Thu=2PM-4AM,3:30AM&Fri=10AM-4AM,3:30AM&Sat=8AM-4AM,3:30AM&Sun=8AM-2AM,1:45AM"
 	go http.HandleFunc("/updateBar", updateBar)
 	// curl http://localhost:5000/setNumberOfInvitationsLeftForInvitees -d "partyID=1&invitees=1111,3303,4000&invitationsLeft=2,3,4"
 	go http.HandleFunc("/setNumberOfInvitationsLeftForInvitees", setNumberOfInvitationsLeftForInvitees)
@@ -154,11 +154,11 @@ func main() {
 
 	/*
 		Creates a fraternity party in Rochester, New York
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=1222222&isMale=false&name=Eva%20Catarina&addressLine1=Wilson%20Blvd&addressLine2=Alpha%20Delta%20Phi%20Fraternity&city=Rochester&country=United%20States&drinksProvided=true&endTime=2017-05-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.128793&longitude=-77.632627&startTime=2017-05-25T00:00:00Z&stateProvinceRegion=New%20York&title=Grad%20Party&zipCode=14627"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=1222222&isMale=false&name=Eva%20Catarina&address=Wilson%20Blvd%20Alpha%20Delta%20Phi%20Fraternity%20Rochester%20New%20York%2014627&drinksProvided=true&endTime=2017-05-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.128793&longitude=-77.632627&startTime=2017-05-25T00:00:00Z&title=Grad%20Party"
 		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/inviteFriendToParty -d "partyID=3581107088474971827&myFacebookID=1222222&isHost=true&numberOfInvitesToGive=1&friendFacebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
 
 		Creates a fraternity party in Madison, WI
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=010101&isMale=true&name=Gerrard%20Holler&addressLine1=210%20Langdon%20St&city=Madison&country=United%20States&drinksProvided=true&endTime=2017-06-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.076698&longitude=-89.393055&startTime=2017-06-25T00:00:00Z&stateProvinceRegion=Wisconsin&title=Summer%20Shenanigans&zipCode=53703"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=010101&isMale=true&name=Gerrard%20Holler&address=210%20Langdon%20St%20Madison%20WI%2053703&drinksProvided=true&endTime=2017-06-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.076698&longitude=-89.393055&startTime=2017-06-25T00:00:00Z&title=Summer%20Shenanigans"
 		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/inviteFriendToParty -d "partyID=10583166241324703384&myFacebookID=010101&isHost=true&numberOfInvitesToGive=1&friendFacebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
 	*/
 
@@ -168,8 +168,8 @@ func main() {
 		Demo:
 
 		Susan creates a surprise party for my sister's birthday:
-			curl http://localhost:5000/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&addressLine1=550%20W%20Main%20St&city=Madison&country=United%20States&drinksProvided=true&endTime=2017-04-08T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=43.068284&longitude=-89.391325&startTime=2017-04-08T22:00:00Z&stateProvinceRegion=Wisconsin&title=Lisa's%20Birthday&zipCode=53703"
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&addressLine1=550%20W%20Main%20St&city=Madison&country=United%20States&drinksProvided=true&endTime=2017-09-25T04:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.068284&longitude=-89.391325&startTime=2017-09-25T00:00Z&stateProvinceRegion=Wisconsin&title=Lisa's%20Birthday&zipCode=53703"
+			curl http://localhost:5000/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&address=550%20W%20Main%20St%20Madison%20WI%2053703&drinksProvided=true&endTime=2017-04-08T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=43.068284&longitude=-89.391325&startTime=2017-04-08T22:00:00Z&title=Lisa's%20Birthday"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&address=550%20W%20Main%20St%20Madison%20WI%2053703&drinksProvided=true&endTime=2017-09-25T04:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.068284&longitude=-89.391325&startTime=2017-09-25T00:00Z&title=Lisa's%20Birthday"
 
 		******** Find the party ID and update all these next calls with it:
 
@@ -190,7 +190,7 @@ func main() {
 		Susan then realizes that she forgot to set my invitations to zero, so she updates that now so that I can't invite anyone:
 			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/setNumberOfInvitationsLeftForInvitees -d "partyID=3005619273277206682&invitees=10155613117039816&invitationsLeft=0"
 		After the expected attendance rises too much, Susan realizes she'll need to move the party to her place, so she updates the party details with the new address and while she's at it, she changes the name to mention it will be a surprise.
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateParty -d "partyID=3005619273277206682&addressLine1=6150%20Century%20Ave&addressLine2=Apt%20109&city=Madison&country=United%20States&details=Meet%20us%20out%20back.&drinksProvided=true&endTime=2017-09-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.106061&longitude=-89.485127&startTime=2017-09-25T00:00:00Z&stateProvinceRegion=Wisconsin&title=Lisa's%20Surprise%20B-day&zipCode=53703"
+			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateParty -d "partyID=3005619273277206682&address=6150%20Century%20Ave%20Apt%20109%20Madison%20WI%2053703&details=Meet%20us%20out%20back.&drinksProvided=true&endTime=2017-09-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.106061&longitude=-89.485127&startTime=2017-09-25T00:00:00Z&title=Lisa's%20Surprise%20B-day"
 		The party comes around and it's AWESOME, so I decide to rate it Bumpin.
 			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=3005619273277206682&facebookID=10155613117039816&rating=Bumpin&timeLastRated=2017-05-25T02:00:00Z&timeOfLastKnownLocation=2017-03-04T00:00:00Z"
 
@@ -202,4 +202,35 @@ func main() {
 
 
 	*/
+
+	/*
+		Testing:
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&address=550%20W%20Main%20St%20Madison%20WI%2053703&drinksProvided=true&endTime=2017-09-25T04:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.068284&longitude=-89.391325&startTime=2017-09-25T00:00Z&title=Lisa's%20Birthday"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=000037&isMale=true&name=Zander%20Blah&address=415%20E%20Bradley%20Rd%20Fox%20Point%20WI%2053217&drinksProvided=true&endTime=2017-12-03T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=43.161847&longitude=-87.903058&startTime=2017-12-02T22:00:00Z&title=Badger%20Bash"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=3005619273277206682&numberOfInvitesToGive=5&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=5349936383849162678&numberOfInvitesToGive=5&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=wJrbyX10zuGs5KVS&facebookID=5201&isMale=true&nameOfCreator=Zak%20Shires&address=620%20University%20Ave%20Madison%20WI%2053715&attendeesMapCleanUpHourInZulu=11&details=A%20bar%20for%20people%20who%20Lift.&latitude=43.073400&longitude=-89.396818&name=CrossBar&phoneNumber=608-455-4308&timeZone=5&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
+
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=7742229197&isMale=true&name=Steinbach%20Fickerbench&address=1221%20W%20Johnson%20St%20Madison%20WI%2053715&drinksProvided=false&endTime=2017-12-05T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=2&latitude=43.072061&longitude=-89.407003&startTime=2017-12-05T22:00:00Z&title=Cops%20&%20Robbers"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=12227493442563884470&numberOfInvitesToGive=2&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
+
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=&facebookID=7742229197&isMale=true&nameOfCreator=Steinbach%20Fickerbench&address=1220%20W%20Johnson%20St%20Madison%20WI%2053715&attendeesMapCleanUpHourInZulu=11&details=Dance%20until%204AM.%20Every%20night.&latitude=43.072488&longitude=-89.408685&name=Dance&phoneNumber=608- 819-8881&timeZone=5&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
+
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=hhQb5U9MIjsPD6aF&facebookID=5201&isMale=true&nameOfCreator=Zak%20Shires&address=522%20State%20St%20Madison%20WI%2053703&attendeesMapCleanUpHourInZulu=11&details=Dance%20until%204AM.%20Every%20night.&latitude=43.074958&longitude=-89.394084&name=Whiskey%20Jacks&phoneNumber=608-414-4322&timeZone=5&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
+
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=7742229197&isMale=true&name=Steinbach%20Fickerbench&address=1025%20Regent%20St%20Madison%20WI%2053715&drinksProvided=false&endTime=2017-10-01T08:00:00Z&feeForDrinks=false&invitesForNewInvitees=2&latitude=43.067294&longitude=-89.403622&startTime=2017-10-01T04:59:00Z&title=Party%20is%202Nite"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=11748375611757413059&numberOfInvitesToGive=2&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
+
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=7742229197&isMale=true&name=Steinbach%20Fickerbench&address=835%20W%20Dayton%20St%20Madison%20WI%2053706&drinksProvided=false&endTime=2017-10-07T08:00:00Z&feeForDrinks=false&invitesForNewInvitees=2&latitude=43.070719&longitude=-89.400224&startTime=2017-10-07T04:59:00Z&title=Less%20Than%20Week%20Out"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=9639539105192070833&numberOfInvitesToGive=2&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
+
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=7742229197&isMale=true&name=Steinbach%20Fickerbench&address=48%20N%20Randall%20Ave%20Madison%20WI%2053715&drinksProvided=false&endTime=2017-10-01T08:00:00Z&feeForDrinks=false&invitesForNewInvitees=2&latitude=43.069245&longitude=-89.409665&startTime=2017-10-01T04:59:00Z&title=Party%20is%20tonight%20Out"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=1492478435686619261&numberOfInvitesToGive=2&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
+		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteParty -d "partyID=79501990437895163"
+	*/
+
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=12227493442563884470&facebookID=10155613117039816&rating=Heat%27n%20Up&timeLastRated=2017-10-01T22:01:00Z&timeOfLastKnownLocation=2017-10-01T22:21:00Z"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=12227493442563884470&facebookID=10155613117039816&rating=Heat%27n%20Up&timeLastRated=2017-03-04T00:57:00Z&timeOfLastKnownLocation=2017-03-04T00:00:00Z"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateBar -d "barID=4454693418154387750&facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer&rating=Weak&status=Going&timeLastRated=2017-03-04T01:25:00Z&timeOfLastKnownLocation=2017-03-04T01:00:00Z"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateBar -d "barID=4454693418154387750&facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer&rating=Weak&status=Going&timeLastRated=2017-03-04T01:25:00Z&timeOfLastKnownLocation=2017-03-04T01:00:00Z"
 }

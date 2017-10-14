@@ -74,7 +74,6 @@ var zuluHourOfBarClose = map[int]float32{
 //		that at some point from 6 AM - 7 AM in the bar's time zone, the attendee
 //		list will be cleaned up.
 func cleanUpAttendeesMapForBarsThatRecentlyClosed(w http.ResponseWriter, r *http.Request) {
-	// TODO: WE NEED 2 additional attributes on Bar -> timeZone (in int map key format), and zuluHourOfBarClose
 	queryResult := cleanUpAttendeesMapForBarsThatRecentlyClosedHelper()
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)

@@ -50,10 +50,7 @@ type PersonData struct {
 
 // PartyData : A party from the database in json format
 type PartyData struct {
-	AddressLine1          string              `json:"addressLine1"`
-	AddressLine2          string              `json:"addressLine2"`
-	City                  string              `json:"city"`
-	Country               string              `json:"country"`
+	Address               string              `json:"address"`
 	Details               string              `json:"details"`
 	DrinksProvided        bool                `json:"drinksProvided"`
 	EndTime               string              `json:"endTime"`
@@ -65,9 +62,7 @@ type PartyData struct {
 	InvitesForNewInvitees uint16              `json:"invitesForNewInvitees"`
 	PartyID               string              `json:"partyID"`
 	StartTime             string              `json:"startTime"`
-	StateProvinceRegion   string              `json:"stateProvinceRegion"`
 	Title                 string              `json:"title"`
-	ZipCode               uint32              `json:"zipCode"`
 }
 
 // Host : A host of a party from the database in json format
@@ -90,13 +85,10 @@ type Invitee struct {
 
 // BarData : A bar from the database in json format
 type BarData struct {
-	AddressLine1                  string                    `json:"addressLine1"`
-	AddressLine2                  string                    `json:"addressLine2"`
+	Address                       string                    `json:"address"`
 	AttendeesMapCleanUpHourInZulu uint32                    `json:"attendeesMapCleanUpHourInZulu"`
 	Attendees                     map[string]*Attendee      `json:"attendees"`
 	BarID                         string                    `json:"barID"`
-	City                          string                    `json:"city"`
-	Country                       string                    `json:"country"`
 	Details                       string                    `json:"details"`
 	Hosts                         map[string]*Host          `json:"hosts"`
 	Latitude                      float64                   `json:"latitude"`
@@ -104,9 +96,7 @@ type BarData struct {
 	Name                          string                    `json:"name"`
 	PhoneNumber                   string                    `json:"phoneNumber"`
 	Schedule                      map[string]ScheduleForDay `json:"schedule"`
-	StateProvinceRegion           string                    `json:"stateProvinceRegion"`
 	TimeZone                      uint32                    `json:"timeZone"`
-	ZipCode                       uint32                    `json:"zipCode"`
 }
 
 // ScheduleForDay : A particular day's schedule
