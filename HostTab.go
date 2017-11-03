@@ -2177,7 +2177,7 @@ func declineInvitationToHostPartyHelper(partyID string, facebookID string) Query
 
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 	var statusAttribute = dynamodb.AttributeValue{}
-	statusAttribute.SetS("declined")
+	statusAttribute.SetS("Declined")
 	expressionValuePlaceholders[":status"] = &statusAttribute
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
@@ -2263,7 +2263,7 @@ func declineInvitationToHostBarHelper(barID string, facebookID string) QueryResu
 
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 	var statusAttribute = dynamodb.AttributeValue{}
-	statusAttribute.SetS("declined")
+	statusAttribute.SetS("Declined")
 	expressionValuePlaceholders[":status"] = &statusAttribute
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
