@@ -336,9 +336,6 @@ func updateInvitationsListAsHostForParty(w http.ResponseWriter, r *http.Request)
 	queryResult.Succeeded = false
 	r.ParseForm()
 	var partyID = r.Form.Get("partyID")
-	// this is a random fbid since it doesn't matter what fbid we send in this case
-	var myFacebookID = "-1"
-	var isHost = true
 	var numberOfInvitesToGive = r.Form.Get("numberOfInvitesToGive")
 	var additionsListFacebookID []string
 	var additionsListIsMaleString []string
@@ -373,6 +370,21 @@ func updateInvitationsListAsHostForParty(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
+	queryResult = updateInvitationsListAsHostForPartyHelper(partyID, numberOfInvitesToGive, additionsListFacebookID, additionsListIsMale, additionsListName, removalsListFacebookID)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func updateInvitationsListAsHostForPartyHelper(partyID string, numberOfInvitesToGive string,
+	additionsListFacebookID []string, additionsListIsMale []bool,
+	additionsListName []string, removalsListFacebookID []string) QueryResult {
+	// this is a random fbid since it doesn't matter what fbid we send in this case
+	var myFacebookID = "-1"
+	var isHost = true
+
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+
 	var queryResult1 = QueryResult{}
 	queryResult1.Succeeded = true
 	var inviteFriendQueryResult = QueryResult{}
@@ -393,8 +405,7 @@ func updateInvitationsListAsHostForParty(w http.ResponseWriter, r *http.Request)
 	}
 
 	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(queryResult)
+	return queryResult
 }
 
 // Find all of the bars for barIDs passed in.
