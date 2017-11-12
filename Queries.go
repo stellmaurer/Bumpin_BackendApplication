@@ -140,7 +140,10 @@ type DynamodbCall struct {
 func convertTwoQueryResultsToOne(queryResult1 QueryResult, queryResult2 QueryResult) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = queryResult1.Succeeded && queryResult2.Succeeded
-	queryResult.Error = queryResult1.Error + " " + queryResult2.Error
+	queryResult.Error = queryResult1.Error
+	if queryResult2.Error != "" {
+		queryResult.Error += " " + queryResult2.Error
+	}
 	if queryResult.Succeeded == true {
 		queryResult.DynamodbCalls = nil
 	} else {

@@ -64,6 +64,7 @@ func main() {
 	/*
 		Host tab queries
 	*/
+	// curl http://localhost:5000/createParty -d "facebookID=123050841787812&isMale=false&name=Melody%20Panil&address=120%20N%20Breese%20Terrace%20Madison%20WI%2053726&drinksProvided=true&endTime=2017-11-27T08:00:00Z&feeForDrinks=true&invitesForNewInvitees=4&latitude=43.070860&longitude=-89.413948&startTime=2017-11-27T01:00:00Z&title=Breese%20Through%20It&additionsListFacebookID=107798829983852,111354699627054&additionsListIsMale=false,false&additionsListName=Nancy%20Greeneescu,Betty%20Chaison&hostListFacebookIDs=122107341882417,115693492525474&hostListNames=Lisa%20Chengberg,Linda%20Qinstein"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=000037&isMale=true&name=Zander%20Blah&address=415%20E%20Bradley%20Rd%20Fox%20Point%20Wisconsin%2053217&drinksProvided=true&endTime=2017-12-03T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=43.161847&longitude=-87.903058&startTime=2017-12-02T22:00:00Z&title=Badger%20Bash"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&address=550%20W%20Main%20St%20Madison%2053703&drinksProvided=true&endTime=2017-04-08T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=43.068284&longitude=-89.391325&startTime=2017-04-08T22:00:00Z&title=Lisa's%20Birthday"
 	go http.HandleFunc("/createParty", createParty)
@@ -83,8 +84,8 @@ func main() {
 	go http.HandleFunc("/updateBar", updateBar)
 	// curl http://localhost:5000/setNumberOfInvitationsLeftForInvitees -d "partyID=1&invitees=1111,3303,4000&invitationsLeft=2,3,4"
 	go http.HandleFunc("/setNumberOfInvitationsLeftForInvitees", setNumberOfInvitationsLeftForInvitees)
-	// curl http://localhost:5000/askFriendToHostPartyWithYou -d "partyID=1&friendFacebookID=90&name=Yasuo%20Yi"
-	go http.HandleFunc("/askFriendToHostPartyWithYou", askFriendToHostPartyWithYou)
+	// curl http://localhost:5000/askFriendsToHostPartyWithYou -d "partyID=1&friendFacebookIDList=90&name=Yasuo%20Yi"
+	//go http.HandleFunc("/askFriendsToHostPartyWithYou", askFriendsToHostPartyWithYou)
 	// curl http://localhost:5000/askFriendToHostBarWithYou -d "barID=1&friendFacebookID=90&name=Yasuo%20Yi"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/askFriendToHostBarWithYou -d "barID=820866964051293233&friendFacebookID=13&name=Eva%20Mendes"
 	go http.HandleFunc("/askFriendToHostBarWithYou", askFriendToHostBarWithYou)
@@ -104,10 +105,13 @@ func main() {
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=5349936383849162678&numberOfInvitesToGive=10&additionsListFacebookID=107798829983852,111354699627054&additionsListIsMale=false,false&additionsListName=Nancy%20Greeneescu,Betty%20Chaison"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=5349936383849162678&removalsListFacebookID=107798829983852,111354699627054&numberOfInvitesToGive=9&additionsListFacebookID=113057999456597,184484668766597&additionsListIsMale=false,true&additionsListName=Ruth%20Sidhuson,Mike%20Panditman"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=5349936383849162678&numberOfInvitesToGive=9&removalsListFacebookID=113057999456597,184484668766597"
+	// curl http://localhost:5000/updateInvitationsListAsHostForParty -d "partyID=5349936383849162678&numberOfInvitesToGive=10&additionsListFacebookID=107798829983852,111354699627054&additionsListIsMale=false,false&additionsListName=Nancy%20Greeneescu,Betty%20Chaison"
+	// curl http://localhost:5000/updateInvitationsListAsHostForParty -d "partyID=5349936383849162678&removalsListFacebookID=107798829983852,111354699627054&numberOfInvitesToGive=9&additionsListFacebookID=113057999456597,184484668766597&additionsListIsMale=false,true&additionsListName=Ruth%20Sidhuson,Mike%20Panditman"
+	// curl http://localhost:5000/updateInvitationsListAsHostForParty -d "partyID=5349936383849162678&numberOfInvitesToGive=9&removalsListFacebookID=113057999456597,184484668766597"
 	// curl http://localhost:5000/updateInvitationsListAsHostForParty -d "partyID=12258969221770119542&numberOfInvitesToGive=5&additionsListFacebookID=90,12345699033&additionsListIsMale=true,false&additionsListName=Yasuo%20Yi,Sarah%20Carlson&removalsListFacebookID=1222222,7742229197"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=14312634064321518425&numberOfInvitesToGive=5&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=5349936383849162678&removalsListFacebookID=10155613117039816"
-	go http.HandleFunc("/updateInvitationsListAsHostForParty", updateInvitationsListAsHostForParty)
+	//go http.HandleFunc("/updateInvitationsListAsHostForParty", updateInvitationsListAsHostForParty)
 	// curl "http://localhost:5000/getPartiesImHosting?partyIDs=1,12258969221770119542"
 	go http.HandleFunc("/getPartiesImHosting", getParties)
 	// curl "http://localhost:5000/getBarsImHosting?barIDs=1,2"

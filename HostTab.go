@@ -70,6 +70,14 @@ func createParty(w http.ResponseWriter, r *http.Request) {
 		details = NULL
 	}
 	queryResult = createPartyHelper(facebookID, isMale, name, address, details, drinksProvided, endTime, feeForDrinks, invitesForNewInvitees, latitude, longitude, partyID, startTime, title)
+
+	if queryResult.Succeeded == true {
+		var addHostsQueryResult = askFriendsToHostPartyWithYou(r, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, addHostsQueryResult)
+
+		var updateInvitationsQueryResult = updateInvitationsListAsHostForParty(r, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, updateInvitationsQueryResult)
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -239,15 +247,32 @@ func setNumberOfInvitationsLeftForInvitees(w http.ResponseWriter, r *http.Reques
 }
 
 // Ask a friend to host the Party with you
-func askFriendToHostPartyWithYou(w http.ResponseWriter, r *http.Request) {
+func askFriendsToHostPartyWithYou(r *http.Request, partyID string) QueryResult {
 	r.ParseForm()
-	partyID := r.Form.Get("partyID")
-	friendFacebookID := r.Form.Get("friendFacebookID")
-	name := r.Form.Get("name")
-	status := "Waiting"
-	queryResult := askFriendToHostPartyWithYouHelper(partyID, friendFacebookID, name, status)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(queryResult)
+
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = true
+
+	var hostListFacebookIDs []string
+	var hostListNames []string
+
+	if r.Form.Get("hostListFacebookIDs") != "" {
+		hostListFacebookIDs = strings.Split(r.Form.Get("hostListFacebookIDs"), ",")
+	}
+	if r.Form.Get("hostListNames") != "" {
+		hostListNames = strings.Split(r.Form.Get("hostListNames"), ",")
+	}
+	if len(hostListFacebookIDs) != len(hostListNames) {
+		queryResult.Error = "askFriendsToHostPartyWithYou function: HTTP post request parameter issues (hosts lists): facebookID array and name array aren't the same length."
+		queryResult.Succeeded = false
+		return queryResult
+	}
+
+	for i := 0; i < len(hostListFacebookIDs); i++ {
+		askFriendQueryResult := askFriendToHostPartyWithYouHelper(partyID, hostListFacebookIDs[i], hostListNames[i])
+		queryResult = convertTwoQueryResultsToOne(queryResult, askFriendQueryResult)
+	}
+	return queryResult
 }
 
 // Ask a friend to host the Bar with you
@@ -331,12 +356,11 @@ func declineInvitationToHostBar(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-func updateInvitationsListAsHostForParty(w http.ResponseWriter, r *http.Request) {
+func updateInvitationsListAsHostForParty(r *http.Request, partyID string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	r.ParseForm()
-	var partyID = r.Form.Get("partyID")
-	var numberOfInvitesToGive = r.Form.Get("numberOfInvitesToGive")
+	var numberOfInvitesToGive = r.Form.Get("invitesForNewInvitees")
 	var additionsListFacebookID []string
 	var additionsListIsMaleString []string
 	var additionsListName []string
@@ -354,8 +378,7 @@ func updateInvitationsListAsHostForParty(w http.ResponseWriter, r *http.Request)
 		isMale, isMaleConvErr := strconv.ParseBool(additionsListIsMaleString[i])
 		if isMaleConvErr != nil {
 			queryResult.Error = "updateInvitationsListAsHostForParty function: HTTP post request isMale parameter issue. " + isMaleConvErr.Error()
-			json.NewEncoder(w).Encode(queryResult)
-			return
+			return queryResult
 		}
 		additionsListIsMale[i] = isMale
 	}
@@ -367,12 +390,10 @@ func updateInvitationsListAsHostForParty(w http.ResponseWriter, r *http.Request)
 	}
 	if (len(additionsListFacebookID) != len(additionsListIsMale)) || (len(additionsListIsMale) != len(additionsListName)) {
 		queryResult.Error = "updateInvitationsListAsHostForParty function: HTTP post request parameter issues (additions lists): facebookID array, isMale array, and name array aren't the same length."
-		json.NewEncoder(w).Encode(queryResult)
-		return
+		return queryResult
 	}
 	queryResult = updateInvitationsListAsHostForPartyHelper(partyID, numberOfInvitesToGive, additionsListFacebookID, additionsListIsMale, additionsListName, removalsListFacebookID)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(queryResult)
+	return queryResult
 }
 
 func updateInvitationsListAsHostForPartyHelper(partyID string, numberOfInvitesToGive string,
@@ -1626,7 +1647,8 @@ func setNumberOfInvitationsLeftForInviteesHelper(partyID string, invitees []stri
 	return queryResult
 }
 
-func askFriendToHostPartyWithYouHelper(partyID string, friendFacebookID string, name string, status string) QueryResult {
+func askFriendToHostPartyWithYouHelper(partyID string, friendFacebookID string, name string) QueryResult {
+	status := "Waiting"
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
