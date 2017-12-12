@@ -78,7 +78,9 @@ func main() {
 	// curl http://localhost:5000/deleteBar -d "barID=2629732187453375056"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteBar -d "barID=218591820409326495"
 	go http.HandleFunc("/deleteBar", deleteBar)
-	// curl http://localhost:5000/updateParty -d "partyID=12258969221770119542&address=University%20of%20Milwaukee%20Dorms%20Milwaukee%20WI%2056677&details=none&drinksProvided=true&endTime=2016-02-03T02:00:00Z&feeForDrinks=true&invitesForNewInvitees=3&latitude=33&longitude=77&startTime=2016-02-02T19:02:00Z&title=Panther%20Game"
+	// hostsToAddFacebookIDs&hostsToAddNames&hostsToRemoveFacebookIDs
+	// curl http://localhost:5000/updateParty -d "partyID=13078678500578502570&address=8124%20N%20Seneca%20Rd&details=Steve%20=%20The%20Bomb&drinksProvided=true&endTime=2017-12-25T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=3&latitude=43.1647483&longitude=-87.90766209999998&startTime=2017-12-23T19:02:00Z&title=Steves%20DA%20BOMB%20Party&additionsListFacebookID=107798829983852,111354699627054&additionsListIsMale=false,false&additionsListName=Nancy%20Greeneescu,Betty%20Chaison&hostsToAddFacebookIDs=122107341882417,115693492525474&hostsToAddNames=Lisa%20Chengberg,Linda%20Qinstein"
+	// curl http://localhost:5000/updateParty -d "partyID=13078678500578502570&address=8124%20N%20Seneca%20Rd&details=Steve%20=%20The%20Bomb&drinksProvided=true&endTime=2017-12-25T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=3&latitude=43.1647483&longitude=-87.90766209999998&startTime=2017-12-23T19:02:00Z&title=Steves%20DA%20BOMB%20Party&removalsListFacebookID=107798829983852,111354699627054&hostsToRemoveFacebookIDs=122107341882417,115693492525474"
 	go http.HandleFunc("/updateParty", updateParty)
 	// curl http://localhost:5000/updateBar -d "barID=17664650520329034593&address=84%20Strip%20Terrace%20LA%20CA%2099031&attendeesMapCleanUpHourInZulu=21&details=none&latitude=18&longitude=-129&name=Women&phoneNumber=902-555-3001&timeZone=7&Mon=4PM-4AM,3:30AM&Tue=4PM-4AM,3:30AM&Wed=4PM-4AM,3:30AM&Thu=2PM-4AM,3:30AM&Fri=10AM-4AM,3:30AM&Sat=8AM-4AM,3:30AM&Sun=8AM-2AM,1:45AM"
 	go http.HandleFunc("/updateBar", updateBar)
@@ -93,7 +95,7 @@ func main() {
 	go http.HandleFunc("/removePartyHost", removePartyHost)
 	// curl http://localhost:5000/removeBarHost -d "barID=1&facebookID=90"
 	go http.HandleFunc("/removeBarHost", removeBarHost)
-	// curl http://localhost:5000/acceptInvitationToHostParty -d "partyID=1&facebookID=90&isMale=true&name=Yasuo%20Yi"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/acceptInvitationToHostParty -d "partyID=2507077996928339051&facebookID=113057999456597&isMale=false&name=Ruth%20Sidhuson"
 	go http.HandleFunc("/acceptInvitationToHostParty", acceptInvitationToHostParty)
 	// curl http://localhost:5000/acceptInvitationToHostBar -d "barID=1&facebookID=90"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/acceptInvitationToHostBar -d "barID=820866964051293233&facebookID=13"
@@ -146,9 +148,9 @@ func main() {
 	/*
 		Admin queries (after bar owner identity confirmed, create a key for them and send back an email with their key)
 	*/
-	// curl http://localhost:5000/createBarKeyForBarOwner
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBarKeyForBarOwner
-	go http.HandleFunc("/createBarKeyForBarOwner", createBarKeyForBarOwner)
+	// curl http://localhost:5000/createBarKeyForAddress
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBarKeyForAddress
+	go http.HandleFunc("/createBarKeyForAddress", createBarKeyForAddress)
 	// curl http://localhost:5000/getBarKey -d "key="
 	go http.HandleFunc("/getBarKey", getBarKey)
 	// curl http://localhost:5000/deleteBarKey -d "key="

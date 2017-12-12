@@ -11,13 +11,15 @@ import (
 )
 
 // Create a bar key for a bar owner
-func createBarKeyForBarOwner(w http.ResponseWriter, r *http.Request) {
-	queryResult := createBarKeyForBarOwnerHelper()
+func createBarKeyForAddress(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	address := r.Form.Get("address")
+	queryResult := createBarKeyForAddressHelper(address)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-func createBarKeyForBarOwnerHelper() QueryResult {
+func createBarKeyForAddressHelper(address string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -29,7 +31,7 @@ func createBarKeyForBarOwnerHelper() QueryResult {
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		queryResult.Error = "createBarKeyForBarOwner function: session creation error. " + err.Error()
+		queryResult.Error = "createBarKeyForAddress function: session creation error. " + err.Error()
 		return queryResult
 	}
 	var svc = dynamodb.New(sess)
@@ -37,9 +39,12 @@ func createBarKeyForBarOwnerHelper() QueryResult {
 	// Finally
 	expressionValues := make(map[string]*dynamodb.AttributeValue)
 	var barKeyAttributeValue = dynamodb.AttributeValue{}
+	var addressAttributeValue = dynamodb.AttributeValue{}
 	var key = getRandomBarKey()
 	barKeyAttributeValue.SetS(key)
+	addressAttributeValue.SetS(address)
 	expressionValues["key"] = &barKeyAttributeValue
+	expressionValues["address"] = &addressAttributeValue
 
 	var putItemInput = dynamodb.PutItemInput{}
 	putItemInput.SetTableName("BarKey")
@@ -47,7 +52,7 @@ func createBarKeyForBarOwnerHelper() QueryResult {
 	_, err2 := getter.DynamoDB.PutItem(&putItemInput)
 	var dynamodbCall = DynamodbCall{}
 	if err2 != nil {
-		dynamodbCall.Error = "createBarKeyForBarOwner function: PutItem error. " + err2.Error()
+		dynamodbCall.Error = "createBarKeyForAddress function: PutItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult

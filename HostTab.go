@@ -184,6 +184,15 @@ func updateParty(w http.ResponseWriter, r *http.Request) {
 		details = NULL
 	}
 	queryResult = updatePartyHelper(address, details, drinksProvided, endTime, feeForDrinks, invitesForNewInvitees, latitude, longitude, partyID, startTime, title)
+
+	if queryResult.Succeeded == true {
+		var updateHostsQueryResult = updateHostListForParty(r, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, updateHostsQueryResult)
+
+		var updateInvitationsQueryResult = updateInvitationsListAsHostForParty(r, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, updateInvitationsQueryResult)
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -399,6 +408,59 @@ func updateInvitationsListAsHostForParty(r *http.Request, partyID string) QueryR
 	return queryResult
 }
 
+func updateHostListForParty(r *http.Request, partyID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	r.ParseForm()
+	var hostsToAddFacebookIDs []string
+	var hostsToAddNames []string
+	var hostsToRemoveFacebookIDs []string
+
+	if r.Form.Get("hostsToAddFacebookIDs") != "" {
+		hostsToAddFacebookIDs = strings.Split(r.Form.Get("hostsToAddFacebookIDs"), ",")
+	}
+	if r.Form.Get("hostsToAddNames") != "" {
+		hostsToAddNames = strings.Split(r.Form.Get("hostsToAddNames"), ",")
+	}
+	if r.Form.Get("hostsToRemoveFacebookIDs") != "" {
+		hostsToRemoveFacebookIDs = strings.Split(r.Form.Get("hostsToRemoveFacebookIDs"), ",")
+	}
+	if len(hostsToAddFacebookIDs) != len(hostsToAddNames) {
+		queryResult.Error = "updateHostListForParty function: HTTP post request parameter issues (additions lists): facebookID array and name array aren't the same length."
+		return queryResult
+	}
+	queryResult = updateHostListForPartyHelper(partyID, hostsToAddFacebookIDs, hostsToAddNames, hostsToRemoveFacebookIDs)
+	return queryResult
+}
+
+func updateHostListForPartyHelper(partyID string,
+	hostsToAddFacebookIDs []string, hostsToAddNames []string, hostsToRemoveFacebookIDs []string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+
+	var queryResult1 = QueryResult{}
+	queryResult1.Succeeded = true
+	var askFriendToHostPartyQueryResult = QueryResult{}
+	for i := 0; i < len(hostsToAddFacebookIDs); i++ {
+		askFriendToHostPartyQueryResult = askFriendToHostPartyWithYouHelper(partyID, hostsToAddFacebookIDs[i], hostsToAddNames[i])
+		if askFriendToHostPartyQueryResult.Succeeded == false {
+			queryResult1 = convertTwoQueryResultsToOne(askFriendToHostPartyQueryResult, queryResult1)
+		}
+	}
+	var queryResult2 = QueryResult{}
+	queryResult2.Succeeded = true
+	var removePartyHostQueryResult = QueryResult{}
+	for i := 0; i < len(hostsToRemoveFacebookIDs); i++ {
+		removePartyHostQueryResult = removePartyHostHelper(partyID, hostsToRemoveFacebookIDs[i])
+		if removePartyHostQueryResult.Succeeded == false {
+			queryResult2 = convertTwoQueryResultsToOne(removePartyHostQueryResult, queryResult2)
+		}
+	}
+
+	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
+	return queryResult
+}
+
 func updateInvitationsListAsHostForPartyHelper(partyID string, numberOfInvitesToGive string,
 	additionsListFacebookID []string, additionsListIsMale []bool,
 	additionsListName []string, removalsListFacebookID []string) QueryResult {
@@ -487,9 +549,11 @@ func getBarKeyHelper(key string) QueryResult {
 		return queryResult
 	}
 	queryResult.Succeeded = true
-	if barKey.Key == "" {
+	if barKey.Address == "" {
 		queryResult.Succeeded = false
 		queryResult.Error = "The bar key doesn't exist."
+	} else {
+		queryResult.Error = barKey.Address
 	}
 	return queryResult
 }
