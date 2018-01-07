@@ -133,6 +133,15 @@ func createBar(w http.ResponseWriter, r *http.Request) {
 		details = NULL
 	}
 	queryResult = createBarHelper(barKey, facebookID, isMale, nameOfCreator, address, attendeesMapCleanUpHourInZulu, barID, details, latitude, longitude, name, phoneNumber, schedule, timeZone)
+
+	if queryResult.Succeeded == true {
+		var addHostsQueryResult = askFriendsToHostBarWithYou(r, barID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, addHostsQueryResult)
+	}
+	if queryResult.Succeeded == true {
+		queryResult.Error = barID
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -235,6 +244,12 @@ func updateBar(w http.ResponseWriter, r *http.Request) {
 		details = NULL
 	}
 	queryResult := updateBarHelper(address, attendeesMapCleanUpHourInZulu, barID, details, latitude, longitude, name, phoneNumber, schedule, timeZone)
+
+	if queryResult.Succeeded == true {
+		var updateHostsQueryResult = updateHostListForBar(r, barID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, updateHostsQueryResult)
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -258,7 +273,7 @@ func setNumberOfInvitationsLeftForInvitees(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-// Ask a friend to host the Party with you
+// Ask friends to host the Party with you
 func askFriendsToHostPartyWithYou(r *http.Request, partyID string) QueryResult {
 	r.ParseForm()
 
@@ -287,16 +302,33 @@ func askFriendsToHostPartyWithYou(r *http.Request, partyID string) QueryResult {
 	return queryResult
 }
 
-// Ask a friend to host the Bar with you
-func askFriendToHostBarWithYou(w http.ResponseWriter, r *http.Request) {
+// Ask a friend to host the Party with you
+func askFriendsToHostBarWithYou(r *http.Request, barID string) QueryResult {
 	r.ParseForm()
-	barID := r.Form.Get("barID")
-	friendFacebookID := r.Form.Get("friendFacebookID")
-	name := r.Form.Get("name")
-	status := "Waiting"
-	queryResult := askFriendToHostBarWithYouHelper(barID, friendFacebookID, name, status)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(queryResult)
+
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = true
+
+	var hostListFacebookIDs []string
+	var hostListNames []string
+
+	if r.Form.Get("hostListFacebookIDs") != "" {
+		hostListFacebookIDs = strings.Split(r.Form.Get("hostListFacebookIDs"), ",")
+	}
+	if r.Form.Get("hostListNames") != "" {
+		hostListNames = strings.Split(r.Form.Get("hostListNames"), ",")
+	}
+	if len(hostListFacebookIDs) != len(hostListNames) {
+		queryResult.Error = "askFriendsToHostBarWithYou function: HTTP post request parameter issues (hosts lists): facebookID array and name array aren't the same length."
+		queryResult.Succeeded = false
+		return queryResult
+	}
+
+	for i := 0; i < len(hostListFacebookIDs); i++ {
+		askFriendQueryResult := askFriendToHostBarWithYouHelper(barID, hostListFacebookIDs[i], hostListNames[i])
+		queryResult = convertTwoQueryResultsToOne(queryResult, askFriendQueryResult)
+	}
+	return queryResult
 }
 
 // Remove a friend from hosting the Party with you
@@ -454,6 +486,59 @@ func updateHostListForPartyHelper(partyID string,
 		removePartyHostQueryResult = removePartyHostHelper(partyID, hostsToRemoveFacebookIDs[i])
 		if removePartyHostQueryResult.Succeeded == false {
 			queryResult2 = convertTwoQueryResultsToOne(removePartyHostQueryResult, queryResult2)
+		}
+	}
+
+	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
+	return queryResult
+}
+
+func updateHostListForBar(r *http.Request, barID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	r.ParseForm()
+	var hostsToAddFacebookIDs []string
+	var hostsToAddNames []string
+	var hostsToRemoveFacebookIDs []string
+
+	if r.Form.Get("hostsToAddFacebookIDs") != "" {
+		hostsToAddFacebookIDs = strings.Split(r.Form.Get("hostsToAddFacebookIDs"), ",")
+	}
+	if r.Form.Get("hostsToAddNames") != "" {
+		hostsToAddNames = strings.Split(r.Form.Get("hostsToAddNames"), ",")
+	}
+	if r.Form.Get("hostsToRemoveFacebookIDs") != "" {
+		hostsToRemoveFacebookIDs = strings.Split(r.Form.Get("hostsToRemoveFacebookIDs"), ",")
+	}
+	if len(hostsToAddFacebookIDs) != len(hostsToAddNames) {
+		queryResult.Error = "updateHostListForBar function: HTTP post request parameter issues (additions lists): facebookID array and name array aren't the same length."
+		return queryResult
+	}
+	queryResult = updateHostListForBarHelper(barID, hostsToAddFacebookIDs, hostsToAddNames, hostsToRemoveFacebookIDs)
+	return queryResult
+}
+
+func updateHostListForBarHelper(barID string,
+	hostsToAddFacebookIDs []string, hostsToAddNames []string, hostsToRemoveFacebookIDs []string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+
+	var queryResult1 = QueryResult{}
+	queryResult1.Succeeded = true
+	var askFriendToHostBarQueryResult = QueryResult{}
+	for i := 0; i < len(hostsToAddFacebookIDs); i++ {
+		askFriendToHostBarQueryResult = askFriendToHostBarWithYouHelper(barID, hostsToAddFacebookIDs[i], hostsToAddNames[i])
+		if askFriendToHostBarQueryResult.Succeeded == false {
+			queryResult1 = convertTwoQueryResultsToOne(askFriendToHostBarQueryResult, queryResult1)
+		}
+	}
+	var queryResult2 = QueryResult{}
+	queryResult2.Succeeded = true
+	var removeBarHostQueryResult = QueryResult{}
+	for i := 0; i < len(hostsToRemoveFacebookIDs); i++ {
+		removeBarHostQueryResult = removeBarHostHelper(barID, hostsToRemoveFacebookIDs[i])
+		if removeBarHostQueryResult.Succeeded == false {
+			queryResult2 = convertTwoQueryResultsToOne(removeBarHostQueryResult, queryResult2)
 		}
 	}
 
@@ -1813,7 +1898,8 @@ func askFriendToHostPartyWithYouHelper(partyID string, friendFacebookID string, 
 	return queryResult
 }
 
-func askFriendToHostBarWithYouHelper(barID string, friendFacebookID string, name string, status string) QueryResult {
+func askFriendToHostBarWithYouHelper(barID string, friendFacebookID string, name string) QueryResult {
+	status := "Waiting"
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
