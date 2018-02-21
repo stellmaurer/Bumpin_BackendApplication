@@ -30,6 +30,11 @@ func main() {
 	go http.HandleFunc("/tables", tables)
 
 	/*
+		Analytics queries
+	*/
+	go http.HandleFunc("/logError", logError)
+
+	/*
 		Find tab queries
 	*/
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/myParties?partyIDs=3005619273277206682,3581107088474971827"
