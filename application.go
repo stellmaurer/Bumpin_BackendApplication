@@ -30,6 +30,17 @@ func main() {
 	go http.HandleFunc("/tables", tables)
 
 	/*
+		Analytics queries
+	*/
+	go http.HandleFunc("/logError", logError)
+
+	/*
+		Bug and Feature Requests
+	*/
+	go http.HandleFunc("/createBug", createBug)
+	go http.HandleFunc("/createFeatureRequest", createFeatureRequest)
+
+	/*
 		Find tab queries
 	*/
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/myParties?partyIDs=3005619273277206682,3581107088474971827"
@@ -72,28 +83,31 @@ func main() {
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=0q8jQL9QYIL2L3jz&facebookID=09876&isMale=false&nameOfCreator=Susan%20Ellmaurer&address=100%20N%20Los%20Angeles%20Rd%20Los%20Angeles%20California%2099031&attendeesMapCleanUpHourInZulu=20&details=A%20bar%20for%20moms.&latitude=18&longitude=-129&name=Women&phoneNumber=608-114-2323&timeZone=6&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
 	// curl http://localhost:5000/createBar -d "barKey=xS32Bk4pBAeRQRFF&facebookID=1222222&isMale=false&nameOfCreator=Eva%20Catarina&address=1421%20Regent%20St%20Madison%20WI%2053711&attendeesMapCleanUpHourInZulu=9&details=Sports%20Bar&latitude=43.067615&longitude=-89.410205&name=SconnieBar&phoneNumber=608-819-8610&timeZone=32&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
 	// curl http://localhost:5000/createBar -d "barKey=UgOMLPkCYUZ1fbfe&facebookID=09876&isMale=false&nameOfCreator=Susan%20Ellmaurer&address=100%20N%20Los%20Angeles%20Rd%20Los%20Angeles%20CA%2099031&attendeesMapCleanUpHourInZulu=20&details=A%20bar%20for%20moms.&latitude=18&longitude=-129&name=Women&phoneNumber=608-114-2323&timeZone=6&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
+	// curl http://localhost:5000/createBar -d "barKey=0r5qcj3UQHF2elJz&facebookID=111961819566368&isMale=true&nameOfCreator=Will%20Greenart&address=305%20N%20Midvale%20Blvd%20Apt%20D%20Madison%20WI&attendeesMapCleanUpHourInZulu=20&details=A%20bar%20for%20moms.&latitude=43.070011&longitude=-89.450809&name=Madtown%20Moms&phoneNumber=608-114-2323&timeZone=6&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM&hostListFacebookIDs=122107341882417,115693492525474&hostListNames=Lisa%20Chengberg,Linda%20Qinstein"
 	go http.HandleFunc("/createBar", createBar)
 	// curl http://localhost:5000/deleteParty -d "partyID=5233516922553495941"
 	go http.HandleFunc("/deleteParty", deleteParty)
 	// curl http://localhost:5000/deleteBar -d "barID=2629732187453375056"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteBar -d "barID=218591820409326495"
 	go http.HandleFunc("/deleteBar", deleteBar)
-	// curl http://localhost:5000/updateParty -d "partyID=12258969221770119542&address=University%20of%20Milwaukee%20Dorms%20Milwaukee%20WI%2056677&details=none&drinksProvided=true&endTime=2016-02-03T02:00:00Z&feeForDrinks=true&invitesForNewInvitees=3&latitude=33&longitude=77&startTime=2016-02-02T19:02:00Z&title=Panther%20Game"
+	// hostsToAddFacebookIDs&hostsToAddNames&hostsToRemoveFacebookIDs
+	// curl http://localhost:5000/updateParty -d "partyID=13078678500578502570&address=8124%20N%20Seneca%20Rd&details=Steve%20=%20The%20Bomb&drinksProvided=true&endTime=2017-12-25T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=3&latitude=43.1647483&longitude=-87.90766209999998&startTime=2017-12-23T19:02:00Z&title=Steves%20DA%20BOMB%20Party&additionsListFacebookID=107798829983852,111354699627054&additionsListIsMale=false,false&additionsListName=Nancy%20Greeneescu,Betty%20Chaison&hostsToAddFacebookIDs=122107341882417,115693492525474&hostsToAddNames=Lisa%20Chengberg,Linda%20Qinstein"
+	// curl http://localhost:5000/updateParty -d "partyID=13078678500578502570&address=8124%20N%20Seneca%20Rd&details=Steve%20=%20The%20Bomb&drinksProvided=true&endTime=2017-12-25T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=3&latitude=43.1647483&longitude=-87.90766209999998&startTime=2017-12-23T19:02:00Z&title=Steves%20DA%20BOMB%20Party&removalsListFacebookID=107798829983852,111354699627054&hostsToRemoveFacebookIDs=122107341882417,115693492525474"
 	go http.HandleFunc("/updateParty", updateParty)
-	// curl http://localhost:5000/updateBar -d "barID=17664650520329034593&address=84%20Strip%20Terrace%20LA%20CA%2099031&attendeesMapCleanUpHourInZulu=21&details=none&latitude=18&longitude=-129&name=Women&phoneNumber=902-555-3001&timeZone=7&Mon=4PM-4AM,3:30AM&Tue=4PM-4AM,3:30AM&Wed=4PM-4AM,3:30AM&Thu=2PM-4AM,3:30AM&Fri=10AM-4AM,3:30AM&Sat=8AM-4AM,3:30AM&Sun=8AM-2AM,1:45AM"
+	// curl http://localhost:5000/updateBar -d "barID=17664650520329034593&address=84%20Strip%20Terrace%20LA%20CA%2099031&attendeesMapCleanUpHourInZulu=21&details=none&latitude=18&longitude=-129&name=Women&phoneNumber=902-555-3001&timeZone=7&Mon=4PM-4AM,3:30AM&Tue=4PM-4AM,3:30AM&Wed=4PM-4AM,3:30AM&Thu=2PM-4AM,3:30AM&Fri=10AM-4AM,3:30AM&Sat=8AM-4AM,3:30AM&Sun=8AM-2AM,1:45AM&hostsToRemoveFacebookIDs=122107341882417,115693492525474"
+	// curl http://localhost:5000/updateBar -d "barID=17664650520329034593&address=84%20Strip%20Terrace%20LA%20CA%2099031&attendeesMapCleanUpHourInZulu=21&details=none&latitude=18&longitude=-129&name=Women&phoneNumber=902-555-3001&timeZone=7&Mon=4PM-4AM,3:30AM&Tue=4PM-4AM,3:30AM&Wed=4PM-4AM,3:30AM&Thu=2PM-4AM,3:30AM&Fri=10AM-4AM,3:30AM&Sat=8AM-4AM,3:30AM&Sun=8AM-2AM,1:45AM&hostsToAddFacebookIDs=122107341882417,115693492525474&hostsToAddNames=Lisa%20Chengberg,Linda%20Qinstein"
+	// curl http://localhost:5000/updateBar -d "barID=7209710440755890549&facebookID=111961819566368&isMale=true&nameOfCreator=Will%20Greenart&address=305%20N%20Midvale%20Blvd%20Apt%20D%20Madison%20WI&attendeesMapCleanUpHourInZulu=20&details=A%20bar%20for%20moms.&latitude=43.070011&longitude=-89.450809&name=Madtown%20Moms&phoneNumber=608-114-2323&timeZone=6&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM&hostsToRemoveFacebookIDs=122107341882417,115693492525474"
+	// curl http://localhost:5000/updateBar -d "barID=7209710440755890549&facebookID=111961819566368&isMale=true&nameOfCreator=Will%20Greenart&address=305%20N%20Midvale%20Blvd%20Apt%20D%20Madison%20WI&attendeesMapCleanUpHourInZulu=20&details=A%20bar%20for%20moms.&latitude=43.070011&longitude=-89.450809&name=Madtown%20Moms&phoneNumber=608-114-2323&timeZone=6&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM&hostsToAddFacebookIDs=122107341882417,115693492525474&hostsToAddNames=Lisa%20Chengberg,Linda%20Qinstein"
 	go http.HandleFunc("/updateBar", updateBar)
 	// curl http://localhost:5000/setNumberOfInvitationsLeftForInvitees -d "partyID=1&invitees=1111,3303,4000&invitationsLeft=2,3,4"
 	go http.HandleFunc("/setNumberOfInvitationsLeftForInvitees", setNumberOfInvitationsLeftForInvitees)
 	// curl http://localhost:5000/askFriendsToHostPartyWithYou -d "partyID=1&friendFacebookIDList=90&name=Yasuo%20Yi"
 	//go http.HandleFunc("/askFriendsToHostPartyWithYou", askFriendsToHostPartyWithYou)
-	// curl http://localhost:5000/askFriendToHostBarWithYou -d "barID=1&friendFacebookID=90&name=Yasuo%20Yi"
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/askFriendToHostBarWithYou -d "barID=820866964051293233&friendFacebookID=13&name=Eva%20Mendes"
-	go http.HandleFunc("/askFriendToHostBarWithYou", askFriendToHostBarWithYou)
 	// curl http://localhost:5000/removePartyHost -d "partyID=1&facebookID=90"
 	go http.HandleFunc("/removePartyHost", removePartyHost)
 	// curl http://localhost:5000/removeBarHost -d "barID=1&facebookID=90"
 	go http.HandleFunc("/removeBarHost", removeBarHost)
-	// curl http://localhost:5000/acceptInvitationToHostParty -d "partyID=1&facebookID=90&isMale=true&name=Yasuo%20Yi"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/acceptInvitationToHostParty -d "partyID=2507077996928339051&facebookID=113057999456597&isMale=false&name=Ruth%20Sidhuson"
 	go http.HandleFunc("/acceptInvitationToHostParty", acceptInvitationToHostParty)
 	// curl http://localhost:5000/acceptInvitationToHostBar -d "barID=1&facebookID=90"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/acceptInvitationToHostBar -d "barID=820866964051293233&facebookID=13"
@@ -146,10 +160,11 @@ func main() {
 	/*
 		Admin queries (after bar owner identity confirmed, create a key for them and send back an email with their key)
 	*/
-	// curl http://localhost:5000/createBarKeyForBarOwner
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBarKeyForBarOwner
-	go http.HandleFunc("/createBarKeyForBarOwner", createBarKeyForBarOwner)
+	// curl http://localhost:5000/createBarKeyForAddress
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBarKeyForAddress -d "address=305%20N%20Midvale%20Blvd%20Apt%20D%20Madison%20WI"
+	go http.HandleFunc("/createBarKeyForAddress", createBarKeyForAddress)
 	// curl http://localhost:5000/getBarKey -d "key="
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getBarKey -d "key=0yweLNBFuooCgvQD"
 	go http.HandleFunc("/getBarKey", getBarKey)
 	// curl http://localhost:5000/deleteBarKey -d "key="
 	go http.HandleFunc("/deleteBarKey", deleteBarKey)

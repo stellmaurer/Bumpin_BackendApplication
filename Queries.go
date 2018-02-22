@@ -118,7 +118,8 @@ type Attendee struct {
 
 // BarKey : A BarKey in the database
 type BarKey struct {
-	Key string `json:"key"`
+	Key     string `json:"key"`
+	Address string `json:"address"`
 }
 
 // QueryResult : The result of a query in json format
