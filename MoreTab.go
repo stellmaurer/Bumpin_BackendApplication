@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,6 +12,118 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
+
+func createBug(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	bugID := strconv.FormatUint(getRandomID(), 10)
+	facebookID := r.Form.Get("facebookID")
+	description := r.Form.Get("description")
+	queryResult := createBugHelper(bugID, facebookID, description)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func createBugHelper(bugID string, facebookID string, description string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "createBugHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionValues := make(map[string]*dynamodb.AttributeValue)
+	var bugIDAttributeValue = dynamodb.AttributeValue{}
+	var facebookIDAttributeValue = dynamodb.AttributeValue{}
+	var descriptionAttributeValue = dynamodb.AttributeValue{}
+	bugIDAttributeValue.SetS(bugID)
+	facebookIDAttributeValue.SetS(facebookID)
+	descriptionAttributeValue.SetS(description)
+	expressionValues["bugID"] = &bugIDAttributeValue
+	expressionValues["facebookID"] = &facebookIDAttributeValue
+	expressionValues["description"] = &descriptionAttributeValue
+
+	var putItemInput = dynamodb.PutItemInput{}
+	putItemInput.SetTableName("Bug")
+	putItemInput.SetItem(expressionValues)
+	_, err2 := getter.DynamoDB.PutItem(&putItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "createBugHelper function: PutItem error. Err msg: " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func createFeatureRequest(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	featureRequestID := strconv.FormatUint(getRandomID(), 10)
+	facebookID := r.Form.Get("facebookID")
+	description := r.Form.Get("description")
+	queryResult := createFeatureRequestHelper(featureRequestID, facebookID, description)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func createFeatureRequestHelper(featureRequestID string, facebookID string, description string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "createFeatureRequestHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionValues := make(map[string]*dynamodb.AttributeValue)
+	var featureRequestIDAttributeValue = dynamodb.AttributeValue{}
+	var facebookIDAttributeValue = dynamodb.AttributeValue{}
+	var descriptionAttributeValue = dynamodb.AttributeValue{}
+	featureRequestIDAttributeValue.SetS(featureRequestID)
+	facebookIDAttributeValue.SetS(facebookID)
+	descriptionAttributeValue.SetS(description)
+	expressionValues["featureRequestID"] = &featureRequestIDAttributeValue
+	expressionValues["facebookID"] = &facebookIDAttributeValue
+	expressionValues["description"] = &descriptionAttributeValue
+
+	var putItemInput = dynamodb.PutItemInput{}
+	putItemInput.SetTableName("FeatureRequest")
+	putItemInput.SetItem(expressionValues)
+	_, err2 := getter.DynamoDB.PutItem(&putItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "createFeatureRequestHelper function: PutItem error. Err msg: " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
 
 // Updates your activity block list. This information is actually stored
 //		in the Person objects of the blocked friends, so this method updates

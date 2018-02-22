@@ -35,6 +35,12 @@ func main() {
 	go http.HandleFunc("/logError", logError)
 
 	/*
+		Bug and Feature Requests
+	*/
+	go http.HandleFunc("/createBug", createBug)
+	go http.HandleFunc("/createFeatureRequest", createFeatureRequest)
+
+	/*
 		Find tab queries
 	*/
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/myParties?partyIDs=3005619273277206682,3581107088474971827"
