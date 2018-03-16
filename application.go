@@ -32,12 +32,15 @@ func main() {
 	/*
 		Analytics queries
 	*/
+	// curl http://localhost:5000/logError -d "ID=Find%20Tab&errorType=server&errorDescription=Blah%20blah"
 	go http.HandleFunc("/logError", logError)
 
 	/*
 		Bug and Feature Requests
 	*/
+	// curl http://localhost:5000/createBug -d "facebookID=12&description=wow%20it%20works"
 	go http.HandleFunc("/createBug", createBug)
+	// curl http://localhost:5000/createFeatureRequest -d "facebookID=12&description=wow%20it%20works"
 	go http.HandleFunc("/createFeatureRequest", createFeatureRequest)
 
 	/*
