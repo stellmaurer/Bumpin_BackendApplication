@@ -77,6 +77,7 @@ type Invitee struct {
 	AtParty                 bool   `json:"atParty"`
 	IsMale                  bool   `json:"isMale"`
 	Name                    string `json:"name"`
+	NumberOfInvitationsLeft uint16 `json:"numberOfInvitationsLeft"`
 	Rating                  string `json:"rating"`
 	TimeLastRated           string `json:"timeLastRated"`
 	TimeOfLastKnownLocation string `json:"timeOfLastKnownLocation"`
