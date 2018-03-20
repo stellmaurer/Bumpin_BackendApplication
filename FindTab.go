@@ -712,3 +712,60 @@ func removeFriendFromPartyHelper(partyID string, friendFacebookID string) QueryR
 	queryResult.Succeeded = true
 	return queryResult
 }
+
+func sendInvitationsAsGuestOfParty(w http.ResponseWriter, r *http.Request) {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	r.ParseForm()
+	partyID := r.Form.Get("partyID")
+	guestFacebookID := r.Form.Get("guestFacebookID")
+	var additionsListFacebookID []string
+	var additionsListIsMaleString []string
+	var additionsListName []string
+
+	if r.Form.Get("additionsListFacebookID") != "" {
+		additionsListFacebookID = strings.Split(r.Form.Get("additionsListFacebookID"), ",")
+	}
+	if r.Form.Get("additionsListIsMale") != "" {
+		additionsListIsMaleString = strings.Split(r.Form.Get("additionsListIsMale"), ",")
+	}
+	// convert IsMale string array to IsMale bool array
+	var additionsListIsMale = make([]bool, len(additionsListIsMaleString))
+	for i := 0; i < len(additionsListIsMaleString); i++ {
+		isMale, isMaleConvErr := strconv.ParseBool(additionsListIsMaleString[i])
+		if isMaleConvErr != nil {
+			queryResult.Error = "sendInvitationsAsGuestOfParty function: HTTP post request isMale parameter issue. " + isMaleConvErr.Error()
+			json.NewEncoder(w).Encode(queryResult)
+			return
+		}
+		additionsListIsMale[i] = isMale
+	}
+	if r.Form.Get("additionsListName") != "" {
+		additionsListName = strings.Split(r.Form.Get("additionsListName"), ",")
+	}
+	if (len(additionsListFacebookID) != len(additionsListIsMale)) || (len(additionsListIsMale) != len(additionsListName)) {
+		queryResult.Error = "sendInvitationsAsGuestOfParty function: HTTP post request parameter issues (additions lists): facebookID array, isMale array, and name array aren't the same length."
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = sendInvitationsAsGuestOfPartyHelper(partyID, guestFacebookID, additionsListFacebookID, additionsListIsMale, additionsListName)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func sendInvitationsAsGuestOfPartyHelper(partyID string, guestFacebookID string,
+	additionsListFacebookID []string, additionsListIsMale []bool, additionsListName []string) QueryResult {
+	var numberOfInvitesToGive = "0"
+	var isHost = false
+
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = true
+	var inviteFriendQueryResult = QueryResult{}
+	for i := 0; i < len(additionsListFacebookID); i++ {
+		inviteFriendQueryResult = inviteFriendToPartyHelper(partyID, guestFacebookID, isHost, numberOfInvitesToGive, additionsListFacebookID[i], additionsListIsMale[i], additionsListName[i])
+		if inviteFriendQueryResult.Succeeded == false {
+			queryResult = convertTwoQueryResultsToOne(inviteFriendQueryResult, queryResult)
+		}
+	}
+	return queryResult
+}

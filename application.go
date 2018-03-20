@@ -66,6 +66,9 @@ func main() {
 	// curl http://localhost:5000/inviteFriendToParty -d "partyID=1&myFacebookID=90&isHost=false&numberOfInvitesToGive=4&friendFacebookID=12345699033&isMale=false&name=Sarah%20Carlson"
 	go http.HandleFunc("/inviteFriendToParty", inviteFriendToParty)
 
+	// curl http://localhost:5000/sendInvitationsAsGuestOfParty -d "partyID=17717147682844711033&guestFacebookID=111354699627054&additionsListFacebookID=184484668766597,114947809267026&additionsListIsMale=true,true&additionsListName=Mike%20Panditman,Tom%20Rosenthalsen"
+	go http.HandleFunc("/sendInvitationsAsGuestOfParty", sendInvitationsAsGuestOfParty)
+
 	/*
 		Rate tab queries
 	*/
