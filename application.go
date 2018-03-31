@@ -1,3 +1,13 @@
+/*******************************************************
+ * Copyright (C) 2018 Stephen Ellmaurer <stellmaurer@gmail.com>
+ *
+ * This file is part of the Bumpin mobile app project.
+ *
+ * The Bumpin project and any of the files within the Bumpin
+ * project can not be copied and/or distributed without
+ * the express permission of Stephen Ellmaurer.
+ *******************************************************/
+
 package main
 
 import "net/http"
@@ -149,6 +159,7 @@ func main() {
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createOrUpdatePerson -d "facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createOrUpdatePerson -d "facebookID=5201&isMale=true&name=Zak%20Shires"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createOrUpdatePerson -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createOrUpdatePerson -d "facebookID=10154326505409816&isMale=true&name=Steve%20Ellmaurer"
 	// curl http://localhost:5000/createOrUpdatePerson -d "facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
 	go http.HandleFunc("/createOrUpdatePerson", createOrUpdatePerson)
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getPerson?facebookID=10155613117039816"
