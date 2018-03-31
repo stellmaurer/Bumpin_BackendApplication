@@ -1,3 +1,13 @@
+/*******************************************************
+ * Copyright (C) 2018 Stephen Ellmaurer <stellmaurer@gmail.com>
+ *
+ * This file is part of the Bumpin mobile app project.
+ *
+ * The Bumpin project and any of the files within the Bumpin
+ * project can not be copied and/or distributed without
+ * the express permission of Stephen Ellmaurer.
+ *******************************************************/
+
 package main
 
 import (
@@ -41,20 +51,20 @@ func logErrorHelper(ID string, errorType string, errorDescription string) QueryR
 	expressionAttributeNames := make(map[string]*string)
 	stringErrorType := "errorType"
 	stringErrors := "errors"
-  stringNumberOfErrors := "numberOfErrors"
+	stringNumberOfErrors := "numberOfErrors"
 	expressionAttributeNames["#errorTypeMap"] = &stringErrorType
 	expressionAttributeNames["#errorType"] = &errorType
-  expressionAttributeNames["#errorsList"] = &stringErrors
-  expressionAttributeNames["#numberOfErrors"] = &stringNumberOfErrors
+	expressionAttributeNames["#errorsList"] = &stringErrors
+	expressionAttributeNames["#numberOfErrors"] = &stringNumberOfErrors
 
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 	var errorDescriptionAttributeValue = dynamodb.AttributeValue{}
-  errorDescriptionAttributeValue.SetS(errorDescription)
-  errorsList := []*dynamodb.AttributeValue{&errorDescriptionAttributeValue}
+	errorDescriptionAttributeValue.SetS(errorDescription)
+	errorsList := []*dynamodb.AttributeValue{&errorDescriptionAttributeValue}
 	var errorsListAttributeValue = dynamodb.AttributeValue{}
-  errorsListAttributeValue.SetL(errorsList)
+	errorsListAttributeValue.SetL(errorsList)
 	expressionValuePlaceholders[":errorDescription"] = &errorsListAttributeValue
-  var incrementAttributeValue = dynamodb.AttributeValue{}
+	var incrementAttributeValue = dynamodb.AttributeValue{}
 	incrementAttributeValue.SetN("1")
 	expressionValuePlaceholders[":increment"] = &incrementAttributeValue
 
