@@ -185,6 +185,8 @@ func main() {
 	go http.HandleFunc("/getBarKey", getBarKey)
 	// curl http://localhost:5000/deleteBarKey -d "key="
 	go http.HandleFunc("/deleteBarKey", deleteBarKey)
+	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=43.056766&longitude=-87.894606&radius=1000"
+	go http.HandleFunc("/populateBarsFromGooglePlacesAPI", populateBarsFromGooglePlacesAPI)
 
 	//curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteBarKey -d "key=utugUFU8rHdSVTdr"
 	//curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/myParties?partyIDs=1,2"

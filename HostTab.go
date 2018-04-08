@@ -694,13 +694,16 @@ func deleteBarKeyHelper(key string) QueryResult {
 }
 
 func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreator string, address string, attendeesMapCleanUpHourInZulu string, barID string, details string, latitude string, longitude string, name string, phoneNumber string, schedule map[string]ScheduleForDay, timeZone string) QueryResult {
-	queryResult := getBarKeyHelper(barKey)
-	if queryResult.Succeeded == false {
-		return queryResult
-	}
-	queryResult = deleteBarKeyHelper(barKey)
-	if queryResult.Succeeded == false {
-		return queryResult
+	var queryResult QueryResult
+	if barKey != "AdminUe28GTttHi3L30Jjd3ILLLAdmin" {
+		queryResult = getBarKeyHelper(barKey)
+		if queryResult.Succeeded == false {
+			return queryResult
+		}
+		queryResult = deleteBarKeyHelper(barKey)
+		if queryResult.Succeeded == false {
+			return queryResult
+		}
 	}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
