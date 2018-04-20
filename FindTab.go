@@ -250,50 +250,67 @@ func barsCloseToMeHelper(latitude float64, longitude float64) QueryResult {
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+
 	// Finally
-	var scanItemsInput = dynamodb.ScanInput{}
-	scanItemsInput.SetTableName("Bar")
-	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
-	// approximately (it's a square not a circle) getting bars within a 100 mile radius
-	// # of degrees / 100 miles = 1.45 degrees of latitude
-	degreesOfLatitudeWhichEqual100Miles := 1.45
-	// # of degrees / 100 miles = (1 degree of longitude / (69.1703 * COS(Latitude * 0.0174533)) ) * 100 miles
-	degreesOfLongitudeWhichEqual100Miles := (1 / (69.1703 * math.Cos(latitude*0.0174533))) * 100
-	latitudeSouth := latitude - degreesOfLatitudeWhichEqual100Miles
-	latitudeNorth := latitude + degreesOfLatitudeWhichEqual100Miles
-	longitudeEast := longitude - degreesOfLongitudeWhichEqual100Miles
-	longitudeWest := longitude + degreesOfLongitudeWhichEqual100Miles
-	latitudeSouthAttributeValue := dynamodb.AttributeValue{}
-	latitudeNorthAttributeValue := dynamodb.AttributeValue{}
-	longitudeEastAttributeValue := dynamodb.AttributeValue{}
-	longitudeWestAttributeValue := dynamodb.AttributeValue{}
-	latitudeSouthAttributeValue.SetN(strconv.FormatFloat(latitudeSouth, 'f', -1, 64))
-	latitudeNorthAttributeValue.SetN(strconv.FormatFloat(latitudeNorth, 'f', -1, 64))
-	longitudeEastAttributeValue.SetN(strconv.FormatFloat(longitudeEast, 'f', -1, 64))
-	longitudeWestAttributeValue.SetN(strconv.FormatFloat(longitudeWest, 'f', -1, 64))
-	expressionValuePlaceholders[":latitudeSouth"] = &latitudeSouthAttributeValue
-	expressionValuePlaceholders[":latitudeNorth"] = &latitudeNorthAttributeValue
-	expressionValuePlaceholders[":longitudeEast"] = &longitudeEastAttributeValue
-	expressionValuePlaceholders[":longitudeWest"] = &longitudeWestAttributeValue
-	scanItemsInput.SetExpressionAttributeValues(expressionValuePlaceholders)
-	scanItemsInput.SetFilterExpression("(latitude BETWEEN :latitudeSouth AND :latitudeNorth) AND (longitude BETWEEN :longitudeEast AND :longitudeWest)")
-	scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
-	var dynamodbCall = DynamodbCall{}
-	if err2 != nil {
-		dynamodbCall.Error = "barsCloseToMeHelper function: Scan error. " + err2.Error()
-		dynamodbCall.Succeeded = false
+	var bars []BarData
+	firstCall := true
+	var lastEvaluatedKey map[string]*dynamodb.AttributeValue
+
+	for {
+		var scanItemsInput = dynamodb.ScanInput{}
+		scanItemsInput.SetTableName("Bar")
+		if firstCall == false && lastEvaluatedKey == nil {
+			break
+		} else {
+			scanItemsInput.SetExclusiveStartKey(lastEvaluatedKey)
+		}
+		expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+		// approximately (it's a square not a circle) getting bars within a 25 mile radius
+		// # of degrees / 25 miles = 0.3625 degrees of latitude
+		degreesOfLatitudeWhichEqual25Miles := 0.3625
+		// # of degrees / 25 miles = (1 degree of longitude / (69.1703 * COS(Latitude * 0.0174533)) ) * 25 miles
+		degreesOfLongitudeWhichEqual25Miles := (1 / (69.1703 * math.Cos(latitude*0.0174533))) * 25
+		latitudeSouth := latitude - degreesOfLatitudeWhichEqual25Miles
+		latitudeNorth := latitude + degreesOfLatitudeWhichEqual25Miles
+		longitudeEast := longitude - degreesOfLongitudeWhichEqual25Miles
+		longitudeWest := longitude + degreesOfLongitudeWhichEqual25Miles
+		latitudeSouthAttributeValue := dynamodb.AttributeValue{}
+		latitudeNorthAttributeValue := dynamodb.AttributeValue{}
+		longitudeEastAttributeValue := dynamodb.AttributeValue{}
+		longitudeWestAttributeValue := dynamodb.AttributeValue{}
+		latitudeSouthAttributeValue.SetN(strconv.FormatFloat(latitudeSouth, 'f', -1, 64))
+		latitudeNorthAttributeValue.SetN(strconv.FormatFloat(latitudeNorth, 'f', -1, 64))
+		longitudeEastAttributeValue.SetN(strconv.FormatFloat(longitudeEast, 'f', -1, 64))
+		longitudeWestAttributeValue.SetN(strconv.FormatFloat(longitudeWest, 'f', -1, 64))
+		expressionValuePlaceholders[":latitudeSouth"] = &latitudeSouthAttributeValue
+		expressionValuePlaceholders[":latitudeNorth"] = &latitudeNorthAttributeValue
+		expressionValuePlaceholders[":longitudeEast"] = &longitudeEastAttributeValue
+		expressionValuePlaceholders[":longitudeWest"] = &longitudeWestAttributeValue
+		scanItemsInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+		scanItemsInput.SetFilterExpression("(latitude BETWEEN :latitudeSouth AND :latitudeNorth) AND (longitude BETWEEN :longitudeEast AND :longitudeWest)")
+		scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
+		var dynamodbCall = DynamodbCall{}
+		if err2 != nil {
+			dynamodbCall.Error = "barsCloseToMeHelper function: Scan error. " + err2.Error()
+			dynamodbCall.Succeeded = false
+			queryResult.DynamodbCalls[0] = dynamodbCall
+			return queryResult
+		}
+		dynamodbCall.Succeeded = true
 		queryResult.DynamodbCalls[0] = dynamodbCall
-		return queryResult
+
+		data := scanItemsOutput.Items
+		barsOnThisPage := make([]BarData, len(data))
+		jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &barsOnThisPage)
+		if jsonErr != nil {
+			queryResult.Error = "barsCloseToMeHelper function: UnmarshalListOfMaps error. " + jsonErr.Error()
+			return queryResult
+		}
+		bars = append(bars, barsOnThisPage...)
+		lastEvaluatedKey = scanItemsOutput.LastEvaluatedKey
+		firstCall = false
 	}
-	dynamodbCall.Succeeded = true
-	queryResult.DynamodbCalls[0] = dynamodbCall
-	data := scanItemsOutput.Items
-	bars := make([]BarData, len(data))
-	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &bars)
-	if jsonErr != nil {
-		queryResult.Error = "barsCloseToMeHelper function: UnmarshalListOfMaps error. " + jsonErr.Error()
-		return queryResult
-	}
+
 	queryResult.Bars = bars
 	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true

@@ -58,7 +58,7 @@ func main() {
 	*/
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/myParties?partyIDs=3005619273277206682,3581107088474971827"
 	go http.HandleFunc("/myParties", getParties)
-	// curl "http://localhost:5000/barsCloseToMe?latitude=43&longitude=-92"
+	// curl "http://localhost:5000/barsCloseToMe?latitude=43.106045&longitude=-89.484873"
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/barsCloseToMe?latitude=43&longitude=-89"
 	go http.HandleFunc("/barsCloseToMe", barsCloseToMe)
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/changeAttendanceStatusToParty -d "partyID=10583166241324703384&facebookID=10155613117039816&status=Maybe"
