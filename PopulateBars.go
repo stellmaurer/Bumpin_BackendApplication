@@ -27,24 +27,31 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	latitude := r.Form.Get("latitude")
-	longitude := r.Form.Get("longitude")
-	radius := r.Form.Get("radius")
-	squareMiles := r.Form.Get("squaremiles")
-	bars := getBarsFromGooglePlacesAPIWithinThisSquareMileage(latitude, longitude, radius, squareMiles)
+func checkForBarDuplicates(w http.ResponseWriter, r *http.Request) {
+	var numberOfDuplicates = 0
+	barsAlreadyInOurDB := getAllBars().Bars
+	barMap := make(map[string]bool)
+	for i := 0; i < len(barsAlreadyInOurDB); i++ {
+		barExistsAlready := barMap[barsAlreadyInOurDB[i].Address+barsAlreadyInOurDB[i].Name]
+		if barExistsAlready == true {
+			numberOfDuplicates++
+		} else {
+			barMap[barsAlreadyInOurDB[i].Address+barsAlreadyInOurDB[i].Name] = true
+		}
+	}
+	var message = "Number of bar duplicates = " + strconv.Itoa(numberOfDuplicates)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(bars)
+	json.NewEncoder(w).Encode(message)
 }
 
-/*func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
+func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	latitudeOfGooglePlacesAPIQuery := r.Form.Get("latitude")
-	longitudeOfGooglePlacesAPIQuery := r.Form.Get("longitude")
+	latitudeOfQuery := r.Form.Get("latitude")
+	longitudeOfQuery := r.Form.Get("longitude")
+	radius := r.Form.Get("radius")
+	squareMiles := r.Form.Get("squaremiles")
 	timeZone := r.Form.Get("timeZone")
 	attendeesMapCleanUpHourInZulu := r.Form.Get("attendeesMapCleanUpHourInZulu")
-	radius := "100"
 
 	barKey := "AdminUe28GTttHi3L30Jjd3ILLLAdmin"
 	facebookID := "184484668766597"
@@ -53,7 +60,7 @@ func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
 	details := "None"
 	lastCall := "1:45 AM"
 
-	barsDetailed := getBarsFromGooglePlacesAPIWithinThisRadius(latitudeOfGooglePlacesAPIQuery, longitudeOfGooglePlacesAPIQuery, radius)
+	barsDetailed := getBarsFromGooglePlacesAPIWithinThisSquareMileage(latitudeOfQuery, longitudeOfQuery, radius, squareMiles)
 
 	barsAlreadyInOurDB := getAllBars().Bars
 	mapOfBarsAlreadyInOurDB := make(map[string]bool)
@@ -68,10 +75,20 @@ func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
 		barExistsAlready := mapOfBarsAlreadyInOurDB[barsDetailed[i].Address+barsDetailed[i].Name]
 		if barExistsAlready == false {
 			barID := strconv.FormatUint(getRandomID(), 10)
-			address := barsDetailed[i].Address
 			latitude := strconv.FormatFloat(barsDetailed[i].Geometry.Location.Lat, 'f', -1, 64)
 			longitude := strconv.FormatFloat(barsDetailed[i].Geometry.Location.Lng, 'f', -1, 64)
-			name := barsDetailed[i].Name
+			var address string
+			if barsDetailed[i].Address == "" {
+				address = "N/A"
+			} else {
+				address = barsDetailed[i].Address
+			}
+			var name string
+			if barsDetailed[i].Name == "" {
+				name = "N/A"
+			} else {
+				name = barsDetailed[i].Name
+			}
 			var phoneNumber string
 			if barsDetailed[i].PhoneNumber == "" {
 				phoneNumber = "N/A"
@@ -105,13 +122,12 @@ func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
-}*/
+}
 
 func getBarsFromGooglePlacesAPIWithinThisSquareMileage(latitudeString string, longitudeString string, radiusString string, squareMileage string) []GooglePlaceDetailed {
 	n := calculateWhatNShouldBe(squareMileage, radiusString)
 	mapOfBarsAlreadyAdded := make(map[string]bool) // making sure we only return unique bars
-	n = 5                                          // for testing purposes
-
+	fmt.Println("n = ", n)
 	latitude, latitudeErr := strconv.ParseFloat(latitudeString, 64)
 	longitude, longitudeErr := strconv.ParseFloat(longitudeString, 64)
 	radius, radiusErr := strconv.ParseFloat(radiusString, 64)
@@ -124,13 +140,6 @@ func getBarsFromGooglePlacesAPIWithinThisSquareMileage(latitudeString string, lo
 	degreesOfLongitudeWhichEqual1Meter := (1 / (69.1703 * math.Cos(latitude*0.0174533))) / 1609.34
 	startingLatitude := latitude + ((radius * float64(n/2)) * degreesOfLatitudeWhichEqual1Meter)
 	startingLongitude := longitude - ((radius * float64(n/2)) * degreesOfLongitudeWhichEqual1Meter)
-
-	/*
-		latitudeSouth := latitude - degreesOfLatitudeWhichEqual1Meter
-		latitudeNorth := latitude + degreesOfLatitudeWhichEqual1Meter
-		longitudeWest := longitude - degreesOfLongitudeWhichEqual1Meter
-		longitudeEast := longitude + degreesOfLongitudeWhichEqual1Meter
-	*/
 
 	var bars []GooglePlaceDetailed
 	currentLatitude := startingLatitude
@@ -145,8 +154,6 @@ func getBarsFromGooglePlacesAPIWithinThisSquareMileage(latitudeString string, lo
 			if ((i % 2) != 0) && ((j % 2) != 0) {
 				barsToAdd = getBarsFromGooglePlacesAPIWithinThisRadiusAndNotInTheMap(currentLatitude, currentLongitude, radiusString, mapOfBarsAlreadyAdded)
 			}
-			fmt.Println("lat = %f, lng = %f", currentLatitude, currentLongitude)
-			fmt.Println(barsToAdd)
 			bars = append(bars, barsToAdd...)
 			currentLongitude = currentLongitude + (radius * degreesOfLongitudeWhichEqual1Meter)
 		}
@@ -169,8 +176,6 @@ func getBarsFromGooglePlacesAPIWithinThisRadiusAndNotInTheMap(latitudeFloat floa
 		if barExistsAlready == false {
 			mapOfBarsAlreadyAdded[barToAdd.Address+barToAdd.Name] = true
 			barsDetailed = append(barsDetailed, barToAdd)
-		} else {
-			fmt.Println("This bar is already in the results.")
 		}
 	}
 	return barsDetailed
