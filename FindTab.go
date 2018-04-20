@@ -245,7 +245,7 @@ func barsCloseToMeHelper(latitude float64, longitude float64) QueryResult {
 	var config = &aws.Config{Region: aws.String("us-west-2")}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		queryResult.Error = "findBarsCloseToMe function: session creation error. " + err.Error()
+		queryResult.Error = "barsCloseToMeHelper function: session creation error. " + err.Error()
 		return queryResult
 	}
 	var svc = dynamodb.New(sess)
@@ -280,7 +280,7 @@ func barsCloseToMeHelper(latitude float64, longitude float64) QueryResult {
 	scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
 	var dynamodbCall = DynamodbCall{}
 	if err2 != nil {
-		dynamodbCall.Error = "findBarsCloseToMe function: Scan error. " + err2.Error()
+		dynamodbCall.Error = "barsCloseToMeHelper function: Scan error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		return queryResult
@@ -291,7 +291,7 @@ func barsCloseToMeHelper(latitude float64, longitude float64) QueryResult {
 	bars := make([]BarData, len(data))
 	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &bars)
 	if jsonErr != nil {
-		queryResult.Error = "findBarsCloseToMe function: UnmarshalListOfMaps error. " + jsonErr.Error()
+		queryResult.Error = "barsCloseToMeHelper function: UnmarshalListOfMaps error. " + jsonErr.Error()
 		return queryResult
 	}
 	queryResult.Bars = bars

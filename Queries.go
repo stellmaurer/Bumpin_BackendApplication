@@ -116,6 +116,37 @@ type ScheduleForDay struct {
 	LastCall string `json:"lastCall"`
 }
 
+// GooglePlace : A google place in json format
+type GooglePlace struct {
+	Name    string `json:"name"`
+	PlaceID string `json:"place_id"`
+}
+
+// GooglePlaceDetailed : A google place with more details in json format
+type GooglePlaceDetailed struct {
+	Name         string       `json:"name"`
+	Address      string       `json:"formatted_address"`
+	PhoneNumber  string       `json:"formatted_phone_number"`
+	OpeningHours OpeningHours `json:"opening_hours"`
+	Geometry     Geometry     `json:"geometry"`
+}
+
+// OpeningHours : Blah
+type OpeningHours struct {
+	Schedule []string `json:"weekday_text"`
+}
+
+// Geometry : Blah
+type Geometry struct {
+	Location Location `json:"location"`
+}
+
+// Location : 20Blah
+type Location struct {
+	Lat float64 `json:"lat"`
+	Lng float64 `json:"lng"`
+}
+
 // Attendee : An attendee to a bar in the database in json format
 type Attendee struct {
 	AtBar                   bool   `json:"atBar"`
