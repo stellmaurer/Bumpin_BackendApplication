@@ -48,14 +48,15 @@ func getTables() (string, error) {
 
 // PersonData : A person from the database in json format
 type PersonData struct {
-	PeopleBlockingTheirActivityFromMe map[string]bool `json:"peopleBlockingTheirActivityFromMe"`
-	PeopleToIgnore                    map[string]bool `json:"peopleToIgnore"`
-	FacebookID                        string          `json:"facebookID"`
-	InvitedTo                         map[string]bool `json:"invitedTo"`
-	IsMale                            bool            `json:"isMale"`
-	Name                              string          `json:"name"`
-	PartyHostFor                      map[string]bool `json:"partyHostFor"`
-	BarHostFor                        map[string]bool `json:"barHostFor"`
+	PeopleBlockingTheirActivityFromMe map[string]bool   `json:"peopleBlockingTheirActivityFromMe"`
+	PeopleToIgnore                    map[string]bool   `json:"peopleToIgnore"`
+	FacebookID                        string            `json:"facebookID"`
+	InvitedTo                         map[string]bool   `json:"invitedTo"`
+	IsMale                            bool              `json:"isMale"`
+	Name                              string            `json:"name"`
+	PartyHostFor                      map[string]bool   `json:"partyHostFor"`
+	BarHostFor                        map[string]bool   `json:"barHostFor"`
+	Status                            map[string]string `json:"status"`
 }
 
 // PartyData : A party from the database in json format

@@ -24,6 +24,7 @@ func main() {
 		Cleanup of parties that have ended
 	*/
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deletePartiesThatHaveExpired
+	// curl http://localhost:5000/deletePartiesThatHaveExpired
 	go http.HandleFunc("/deletePartiesThatHaveExpired", deletePartiesThatHaveExpired)
 
 	/*
@@ -65,7 +66,7 @@ func main() {
 	go http.HandleFunc("/changeAttendanceStatusToParty", changeAttendanceStatusToParty)
 	// curl http://localhost:5000/changeAttendanceStatusToBar -d "barID=10206058924726147340&facebookID=90&atBar=false&isMale=true&name=Yasuo%20Yi&rating=None&status=Maybe&timeLastRated=2001-01-01T00:00:00Z&timeOfLastKnownLocation=2001-01-01T00:00:00Z"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/changeAttendanceStatusToBar -d "barID=10206058924726147340&facebookID=90&atBar=false&isMale=true&name=Yasuo%20Yi&rating=None&status=Maybe&timeLastRated=2001-01-01T00:00:00Z&timeOfLastKnownLocation=2001-01-01T00:00:00Z"
-	// curl http://localhost:5000/changeAttendanceStatusToBar -d "barID=4454693418154387750&facebookID=9321&atBar=false&isMale=false&name=Emily%20Blunt&rating=None&status=Maybe&timeLastRated=2001-01-01T00:00:00Z&timeOfLastKnownLocation=2001-09-01T00:00:00Z"
+	// curl http://localhost:5000/changeAttendanceStatusToBar -d "barID=16773670543315734479&facebookID=10154326505409816&atBar=false&isMale=true&name=Steve%20Ellmaurer&rating=None&status=Maybe&timeLastRated=2001-01-01T00:00:00Z&timeOfLastKnownLocation=2001-09-01T00:00:00Z"
 	go http.HandleFunc("/changeAttendanceStatusToBar", changeAttendanceStatusToBar)
 	// curl http://localhost:5000/changeAtPartyStatus -d "partyID=3005619273277206682&facebookID=10155613117039816&atParty=true&timeOfLastKnownLocation=2017-09-04T00:00:00Z"
 	go http.HandleFunc("/changeAtPartyStatus", changeAtPartyStatus)
@@ -160,7 +161,7 @@ func main() {
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createOrUpdatePerson -d "facebookID=5201&isMale=true&name=Zak%20Shires"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createOrUpdatePerson -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createOrUpdatePerson -d "facebookID=10154326505409816&isMale=true&name=Steve%20Ellmaurer"
-	// curl http://localhost:5000/createOrUpdatePerson -d "facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
+	// curl http://localhost:5000/createOrUpdatePerson -d "facebookID=1&isMale=true&name=Zitoli%20Estov"
 	go http.HandleFunc("/createOrUpdatePerson", createOrUpdatePerson)
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getPerson?facebookID=10155613117039816"
 	// curl "http://localhost:5000/getPerson?facebookID=10155613117039816"
@@ -173,6 +174,10 @@ func main() {
 	go http.HandleFunc("/updateActivityBlockList", updateActivityBlockList)
 	// curl http://localhost:5000/updateIgnoreList -d "myFacebookID=12345699033&removalsList=12,010101,90&additionsList=13,12345699033,7742229197"
 	go http.HandleFunc("/updateIgnoreList", updateIgnoreList)
+	// curl http://localhost:5000/updatePersonStatus -d "facebookID=10154326505409816&goingOut=Yes&timeGoingOutStatusWasSet=2000-01-01T00:00:00Z&manuallySet=Yes"
+	go http.HandleFunc("/updatePersonStatus", updatePersonStatus)
+	// curl "http://localhost:5000/getFriends?facebookIDs=10213227731221423,10155513390409021,10108057048841417"
+	go http.HandleFunc("/getFriends", getFriends)
 
 	/*
 		Admin queries (after bar owner identity confirmed, create a key for them and send back an email with their key)
