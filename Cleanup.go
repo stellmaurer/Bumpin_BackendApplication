@@ -210,41 +210,59 @@ func findBarsThatRecentlyClosed() (QueryResult, []BarID) {
 	}
 	var svc = dynamodb.New(sess)
 	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
-	// Finally
+
 	currentTimeInZulu := time.Now().UTC().Format("2006-01-02T15:04:05Z")
 	zuluHourOfCurrentTimeString := currentTimeInZulu[11:13]
 
-	var scanItemsInput = dynamodb.ScanInput{}
+	var bars []BarID
+	firstCall := true
+	var lastEvaluatedKey map[string]*dynamodb.AttributeValue
 
-	expressionAttributeNames := make(map[string]*string)
-	var attendeesMapCleanUpHourInZuluString = "attendeesMapCleanUpHourInZulu"
-	expressionAttributeNames["#attendeesMapCleanUpHourInZulu"] = &attendeesMapCleanUpHourInZuluString
+	for {
+		var scanItemsInput = dynamodb.ScanInput{}
+		scanItemsInput.SetTableName("Bar")
+		if firstCall == false && lastEvaluatedKey == nil {
+			break
+		} else {
+			scanItemsInput.SetExclusiveStartKey(lastEvaluatedKey)
+		}
 
-	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
-	zuluHourOfCurrentTimeAttributeValue := dynamodb.AttributeValue{}
-	zuluHourOfCurrentTimeAttributeValue.SetN(zuluHourOfCurrentTimeString)
-	expressionValuePlaceholders[":zuluHourOfCurrentTime"] = &zuluHourOfCurrentTimeAttributeValue
-	scanItemsInput.SetTableName("Bar")
-	scanItemsInput.SetExpressionAttributeNames(expressionAttributeNames)
-	scanItemsInput.SetExpressionAttributeValues(expressionValuePlaceholders)
-	scanItemsInput.SetFilterExpression("#attendeesMapCleanUpHourInZulu = :zuluHourOfCurrentTime")
-	scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
-	var dynamodbCall = DynamodbCall{}
-	if err2 != nil {
-		dynamodbCall.Error = "findBarsThatRecentlyClosed function: Scan error. " + err2.Error()
-		dynamodbCall.Succeeded = false
+		expressionAttributeNames := make(map[string]*string)
+		var attendeesMapCleanUpHourInZuluString = "attendeesMapCleanUpHourInZulu"
+		expressionAttributeNames["#attendeesMapCleanUpHourInZulu"] = &attendeesMapCleanUpHourInZuluString
+
+		expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+		zuluHourOfCurrentTimeAttributeValue := dynamodb.AttributeValue{}
+		zuluHourOfCurrentTimeAttributeValue.SetN(zuluHourOfCurrentTimeString)
+		expressionValuePlaceholders[":zuluHourOfCurrentTime"] = &zuluHourOfCurrentTimeAttributeValue
+		scanItemsInput.SetTableName("Bar")
+		scanItemsInput.SetExpressionAttributeNames(expressionAttributeNames)
+		scanItemsInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+		scanItemsInput.SetFilterExpression("#attendeesMapCleanUpHourInZulu = :zuluHourOfCurrentTime")
+		scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
+
+		var dynamodbCall = DynamodbCall{}
+		if err2 != nil {
+			dynamodbCall.Error = "findBarsThatRecentlyClosed function: Scan error. " + err2.Error()
+			dynamodbCall.Succeeded = false
+			queryResult.DynamodbCalls[0] = dynamodbCall
+			return queryResult, nil
+		}
+		dynamodbCall.Succeeded = true
 		queryResult.DynamodbCalls[0] = dynamodbCall
-		return queryResult, nil
+
+		data := scanItemsOutput.Items
+		barsOnThisPage := make([]BarID, len(data))
+		jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &barsOnThisPage)
+		if jsonErr != nil {
+			queryResult.Error = "findBarsThatRecentlyClosed function: UnmarshalListOfMaps error. " + jsonErr.Error()
+			return queryResult, nil
+		}
+		bars = append(bars, barsOnThisPage...)
+		lastEvaluatedKey = scanItemsOutput.LastEvaluatedKey
+		firstCall = false
 	}
-	dynamodbCall.Succeeded = true
-	queryResult.DynamodbCalls[0] = dynamodbCall
-	data := scanItemsOutput.Items
-	bars := make([]BarID, len(data))
-	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &bars)
-	if jsonErr != nil {
-		queryResult.Error = "findBarsThatRecentlyClosed function: UnmarshalListOfMaps error. " + jsonErr.Error()
-		return queryResult, nil
-	}
+
 	queryResult.DynamodbCalls = nil
 	queryResult.Succeeded = true
 	return queryResult, bars

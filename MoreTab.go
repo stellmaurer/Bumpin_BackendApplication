@@ -20,8 +20,152 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
+
+func getFriends(w http.ResponseWriter, r *http.Request) {
+	var queryResult = QueryResult{}
+	if r.URL.Query().Get("facebookIDs") == "" {
+		queryResult.Succeeded = true
+		queryResult.DynamodbCalls = nil
+	} else {
+		facebookIDs := strings.Split(r.URL.Query().Get("facebookIDs"), ",")
+		queryResult = getFriendsHelper(facebookIDs)
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func getFriendsHelper(facebookIDs []string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "getFriendsHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	var batchGetItemInput = dynamodb.BatchGetItemInput{}
+	attributesAndValues := make([]map[string]*dynamodb.AttributeValue, len(facebookIDs))
+	for i := 0; i < len(facebookIDs); i++ {
+		var attributeValue = dynamodb.AttributeValue{}
+		attributeValue.SetS(facebookIDs[i])
+		attributesAndValues[i] = make(map[string]*dynamodb.AttributeValue)
+		attributesAndValues[i]["facebookID"] = &attributeValue
+	}
+	var keysAndAttributes dynamodb.KeysAndAttributes
+	keysAndAttributes.SetKeys(attributesAndValues)
+	requestedItems := make(map[string]*dynamodb.KeysAndAttributes)
+	requestedItems["Person"] = &keysAndAttributes
+	batchGetItemInput.SetRequestItems(requestedItems)
+	batchGetItemOutput, err2 := getter.DynamoDB.BatchGetItem(&batchGetItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "getFriendsHelper function: BatchGetItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	data := batchGetItemOutput.Responses
+	friends := make([]PersonData, len(facebookIDs))
+	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data["Person"], &friends)
+	if jsonErr != nil {
+		queryResult.Error = "getFriendsHelper function: UnmarshalListOfMaps error. " + jsonErr.Error()
+		return queryResult
+	}
+	queryResult.People = friends
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func updatePersonStatus(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	facebookID := r.Form.Get("facebookID")
+	goingOut := r.Form.Get("goingOut")
+	timeGoingOutStatusWasSet := r.Form.Get("timeGoingOutStatusWasSet")
+	manuallySet := r.Form.Get("manuallySet")
+	queryResult := updatePersonStatusHelper(facebookID, goingOut, timeGoingOutStatusWasSet, manuallySet)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func updatePersonStatusHelper(facebookID string, goingOut string, timeGoingOutStatusWasSet string, manuallySet string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "updatePersonStatusHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var statusString = "status"
+	var goingOutString = "goingOut"
+	var timeGoingOutStatusWasSetString = "timeGoingOutStatusWasSet"
+	var manuallySetString = "manuallySet"
+	expressionAttributeNames["#status"] = &statusString
+	expressionAttributeNames["#goingOut"] = &goingOutString
+	expressionAttributeNames["#timeGoingOutStatusWasSet"] = &timeGoingOutStatusWasSetString
+	expressionAttributeNames["#manuallySet"] = &manuallySetString
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var goingOutAttributeValue = dynamodb.AttributeValue{}
+	var timeGoingOutStatusWasSetAttributeValue = dynamodb.AttributeValue{}
+	var manuallySetAttributeValue = dynamodb.AttributeValue{}
+	goingOutAttributeValue.SetS(goingOut)
+	timeGoingOutStatusWasSetAttributeValue.SetS(timeGoingOutStatusWasSet)
+	manuallySetAttributeValue.SetS(manuallySet)
+	expressionValuePlaceholders[":goingOut"] = &goingOutAttributeValue
+	expressionValuePlaceholders[":timeGoingOutStatusWasSet"] = &timeGoingOutStatusWasSetAttributeValue
+	expressionValuePlaceholders[":manuallySet"] = &manuallySetAttributeValue
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetS(facebookID)
+	keyMap["facebookID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Person")
+	updateExpression := "SET #status.#goingOut=:goingOut, #status.#timeGoingOutStatusWasSet=:timeGoingOutStatusWasSet, #status.#manuallySet=:manuallySet"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "updatePersonStatusHelper function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
 
 func createBug(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()

@@ -22,7 +22,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-// Create or update a Person in the database
 func createOrUpdatePerson(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	facebookID := r.Form.Get("facebookID")
@@ -80,6 +79,7 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	var partyHostForAttributeValue = dynamodb.AttributeValue{}
 	var peopleBlockingTheirActivityFromMeAttributeValue = dynamodb.AttributeValue{}
 	var peopleToIgnoreAttributeValue = dynamodb.AttributeValue{}
+	var goingOutStatusAttributeValue = dynamodb.AttributeValue{}
 	barHostForAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	facebookIDAttributeValue.SetS(facebookID)
 	invitedToAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
@@ -88,6 +88,14 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	partyHostForAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	peopleBlockingTheirActivityFromMeAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	peopleToIgnoreAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
+	statusMap := make(map[string]*dynamodb.AttributeValue)
+	var goingOutAttribute = dynamodb.AttributeValue{}
+	var timeGoingOutStatusWasSetAttribute = dynamodb.AttributeValue{}
+	goingOutAttribute.SetS("Unknown")
+	timeGoingOutStatusWasSetAttribute.SetS("2000-01-01T00:00:00Z")
+	statusMap["goingOut"] = &goingOutAttribute
+	statusMap["timeGoingOutStatusWasSet"] = &timeGoingOutStatusWasSetAttribute
+	goingOutStatusAttributeValue.SetM(statusMap)
 	expressionValues["barHostFor"] = &barHostForAttributeValue
 	expressionValues["facebookID"] = &facebookIDAttributeValue
 	expressionValues["invitedTo"] = &invitedToAttributeValue
@@ -96,6 +104,7 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	expressionValues["partyHostFor"] = &partyHostForAttributeValue
 	expressionValues["peopleBlockingTheirActivityFromMe"] = &peopleBlockingTheirActivityFromMeAttributeValue
 	expressionValues["peopleToIgnore"] = &peopleToIgnoreAttributeValue
+	expressionValues["status"] = &goingOutStatusAttributeValue
 
 	var putItemInput = dynamodb.PutItemInput{}
 	putItemInput.SetConditionExpression("attribute_not_exists(#fbid)")
