@@ -24,6 +24,7 @@ func main() {
 		Cleanup of parties that have ended
 	*/
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deletePartiesThatHaveExpired
+	// curl http://localhost:5000/deletePartiesThatHaveExpired
 	go http.HandleFunc("/deletePartiesThatHaveExpired", deletePartiesThatHaveExpired)
 
 	/*
