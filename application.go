@@ -13,6 +13,25 @@ package main
 import "net/http"
 
 func main() {
+
+	/*
+		Push Notification Testing
+	*/
+	// curl http://localhost:5000/testiOSPushNotification
+	// go http.HandleFunc("/testiOSPushNotification", testiOSPushNotification)
+	// curl http://localhost:5000/testAndroidPushNotification
+	// go http.HandleFunc("/testAndroidPushNotification", testAndroidPushNotification)
+	// curl http://localhost:5000/testSendiOSPushNotification
+	// go http.HandleFunc("/testSendiOSPushNotification", testSendiOSPushNotification)
+	// curl http://localhost:5000/testSendAndroidPushNotification
+	// go http.HandleFunc("/testSendAndroidPushNotification", testSendAndroidPushNotification)
+	// curl http://localhost:5000/createNotification -d "receiverFacebookID=10154326505409816&message=Hello&partyOrBarID=1"
+	go http.HandleFunc("/createNotification", createNotification)
+	// curl http://localhost:5000/getNotificationsForPerson -d "facebookID=10154326505409816"
+	go http.HandleFunc("/getNotificationsForPerson", getNotificationsForPerson)
+	// curl http://localhost:5000/markNotificationAsSeen -d "notificationID=7816555614368222646"
+	go http.HandleFunc("/markNotificationAsSeen", markNotificationAsSeen)
+
 	//curl http://localhost:5000/createParty -d "facebookID=30&isMale=true&name=Zander%20Dunn&address=201%20River%20St%20River%20Hills%20WI%2053215&drinksProvided=true&endTime=2017-05-20T00:00:00Z&feeForDrinks=false&invitesForNewInvitees=1&latitude=-59&longitude=42&startTime=2015-01-18T00:00:00Z&title=Baseball%20Party"
 	//curl http://localhost:5000/askFriendToHostPartyWithYou -d "partyID=11154013587666973726&friendFacebookID=010101&name=Gerrard%20Holler"
 	//curl http://localhost:5000/inviteFriendToParty -d "partyID=11154013587666973726&myFacebookID=30&isHost=true&numberOfInvitesToGive=4&friendFacebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
@@ -161,7 +180,7 @@ func main() {
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createOrUpdatePerson -d "facebookID=5201&isMale=true&name=Zak%20Shires"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createOrUpdatePerson -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createOrUpdatePerson -d "facebookID=10154326505409816&isMale=true&name=Steve%20Ellmaurer"
-	// curl http://localhost:5000/createOrUpdatePerson -d "facebookID=1&isMale=true&name=Zitoli%20Estov"
+	// curl http://localhost:5000/createOrUpdatePerson -d "facebookID=1&isMale=true&name=Zitoli%20Estov&platform=iOS&deviceToken=Unknown"
 	go http.HandleFunc("/createOrUpdatePerson", createOrUpdatePerson)
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getPerson?facebookID=10155613117039816"
 	// curl "http://localhost:5000/getPerson?facebookID=10155613117039816"

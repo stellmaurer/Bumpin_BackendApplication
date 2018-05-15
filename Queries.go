@@ -46,6 +46,25 @@ func getTables() (string, error) {
 	return tables, nil
 }
 
+type AndroidNotificationPayload struct {
+	Message        string         `json:"message"`
+	AdditionalData AdditionalData `json:"additionalData"`
+}
+
+type AdditionalData struct {
+	PartyOrBarID string `json:"partyOrBarID"`
+}
+
+// Notification : A notification from the database in json format
+type Notification struct {
+	NotificationID     string `json:"notificationID"`
+	ReceiverFacebookID string `json:"receiverFacebookID"`
+	Message            string `json:"message"`
+	PartyOrBarID       string `json:"partyOrBarID"`
+	HasBeenSeen        bool   `json:"hasBeenSeen"`
+	ExpiresAt          int64  `json:"expiresAt"`
+}
+
 // PersonData : A person from the database in json format
 type PersonData struct {
 	PeopleBlockingTheirActivityFromMe map[string]bool   `json:"peopleBlockingTheirActivityFromMe"`
@@ -57,6 +76,8 @@ type PersonData struct {
 	PartyHostFor                      map[string]bool   `json:"partyHostFor"`
 	BarHostFor                        map[string]bool   `json:"barHostFor"`
 	Status                            map[string]string `json:"status"`
+	Platform                          string            `json:"platform"`
+	DeviceToken                       string            `json:"deviceToken"`
 }
 
 // PartyData : A party from the database in json format
@@ -173,6 +194,7 @@ type QueryResult struct {
 	People        []PersonData   `json:"people"`
 	Parties       []PartyData    `json:"parties"`
 	Bars          []BarData      `json:"bars"`
+	Notifications []Notification `json:"notifications"`
 }
 
 // DynamodbCall : The result of a dynamodb call.
