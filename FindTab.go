@@ -174,6 +174,13 @@ func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	queryResult = inviteFriendToPartyHelper(partyID, myFacebookID, isHost, numberOfInvitesToGive, friendFacebookID, isMale, name)
+
+	if queryResult.Succeeded == true {
+		message := r.Form.Get("name") + " invited you to a party."
+		sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople([]string{friendFacebookID}, message, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -783,7 +790,15 @@ func sendInvitationsAsGuestOfParty(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
+
 	queryResult = sendInvitationsAsGuestOfPartyHelper(partyID, guestFacebookID, additionsListFacebookID, additionsListIsMale, additionsListName)
+
+	if queryResult.Succeeded == true {
+		message := r.Form.Get("guestName") + " invited you to a party."
+		sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(additionsListFacebookID, message, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }

@@ -310,15 +310,16 @@ func askFriendsToHostPartyWithYou(r *http.Request, partyID string) QueryResult {
 		queryResult = convertTwoQueryResultsToOne(queryResult, askFriendQueryResult)
 	}
 
-	hostIsMale, _ := strconv.ParseBool(r.Form.Get("isMale"))
-	genderString := "her"
-	if hostIsMale == true {
-		genderString = "him"
+	if queryResult.Succeeded == true {
+		hostIsMale, _ := strconv.ParseBool(r.Form.Get("isMale"))
+		genderString := "her"
+		if hostIsMale == true {
+			genderString = "him"
+		}
+		message := r.Form.Get("name") + " wants you to host a party with " + genderString + "."
+		sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(hostListFacebookIDs, message, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
 	}
-	message := r.Form.Get("name") + " wants you to host a party with " + genderString + "."
-	sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(hostListFacebookIDs, message, partyID)
-
-	queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
 	return queryResult
 }
 
@@ -347,6 +348,17 @@ func askFriendsToHostBarWithYou(r *http.Request, barID string) QueryResult {
 	for i := 0; i < len(hostListFacebookIDs); i++ {
 		askFriendQueryResult := askFriendToHostBarWithYouHelper(barID, hostListFacebookIDs[i], hostListNames[i])
 		queryResult = convertTwoQueryResultsToOne(queryResult, askFriendQueryResult)
+	}
+
+	if queryResult.Succeeded == true {
+		hostIsMale, _ := strconv.ParseBool(r.Form.Get("isMale"))
+		genderString := "her"
+		if hostIsMale == true {
+			genderString = "him"
+		}
+		message := r.Form.Get("nameOfCreator") + " wants you to host a bar with " + genderString + "."
+		sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(hostListFacebookIDs, message, barID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
 	}
 	return queryResult
 }
@@ -457,6 +469,12 @@ func updateInvitationsListAsHostForParty(r *http.Request, partyID string) QueryR
 		return queryResult
 	}
 	queryResult = updateInvitationsListAsHostForPartyHelper(partyID, numberOfInvitesToGive, additionsListFacebookID, additionsListIsMale, additionsListName, removalsListFacebookID)
+
+	if queryResult.Succeeded == true {
+		message := r.Form.Get("name") + " invited you to a party."
+		sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(additionsListFacebookID, message, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
+	}
 	return queryResult
 }
 
@@ -511,15 +529,16 @@ func updateHostListForPartyHelper(r *http.Request, partyID string,
 
 	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
 
-	hostIsMale, _ := strconv.ParseBool(r.Form.Get("isMale"))
-	genderString := "her"
-	if hostIsMale == true {
-		genderString = "him"
+	if queryResult1.Succeeded == true {
+		hostIsMale, _ := strconv.ParseBool(r.Form.Get("isMale"))
+		genderString := "her"
+		if hostIsMale == true {
+			genderString = "him"
+		}
+		message := r.Form.Get("name") + " wants you to host a party with " + genderString + "."
+		sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(hostsToAddFacebookIDs, message, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
 	}
-	message := r.Form.Get("name") + " wants you to host a party with " + genderString + "."
-	sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(hostsToAddFacebookIDs, message, partyID)
-
-	queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
 	return queryResult
 }
 
@@ -544,11 +563,11 @@ func updateHostListForBar(r *http.Request, barID string) QueryResult {
 		queryResult.Error = "updateHostListForBar function: HTTP post request parameter issues (additions lists): facebookID array and name array aren't the same length."
 		return queryResult
 	}
-	queryResult = updateHostListForBarHelper(barID, hostsToAddFacebookIDs, hostsToAddNames, hostsToRemoveFacebookIDs)
+	queryResult = updateHostListForBarHelper(r, barID, hostsToAddFacebookIDs, hostsToAddNames, hostsToRemoveFacebookIDs)
 	return queryResult
 }
 
-func updateHostListForBarHelper(barID string,
+func updateHostListForBarHelper(r *http.Request, barID string,
 	hostsToAddFacebookIDs []string, hostsToAddNames []string, hostsToRemoveFacebookIDs []string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
@@ -573,6 +592,17 @@ func updateHostListForBarHelper(barID string,
 	}
 
 	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
+
+	if queryResult1.Succeeded == true {
+		hostIsMale, _ := strconv.ParseBool(r.Form.Get("isMale"))
+		genderString := "her"
+		if hostIsMale == true {
+			genderString = "him"
+		}
+		message := r.Form.Get("nameOfCreator") + " wants you to host a bar with " + genderString + "."
+		sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(hostsToAddFacebookIDs, message, barID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
+	}
 	return queryResult
 }
 

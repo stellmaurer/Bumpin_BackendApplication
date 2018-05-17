@@ -101,7 +101,7 @@ func main() {
 	// curl http://localhost:5000/inviteFriendToParty -d "partyID=1&myFacebookID=90&isHost=false&numberOfInvitesToGive=4&friendFacebookID=12345699033&isMale=false&name=Sarah%20Carlson"
 	go http.HandleFunc("/inviteFriendToParty", inviteFriendToParty)
 
-	// curl http://localhost:5000/sendInvitationsAsGuestOfParty -d "partyID=17717147682844711033&guestFacebookID=111354699627054&additionsListFacebookID=184484668766597,114947809267026&additionsListIsMale=true,true&additionsListName=Mike%20Panditman,Tom%20Rosenthalsen"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/sendInvitationsAsGuestOfParty -d "partyID=2040353648901063840&guestName=Steve%20Ellmaurer&guestFacebookID=10154326505409816&additionsListFacebookID=107808443432866&additionsListIsMale=false&additionsListName=Alex%20Datoriod"
 	go http.HandleFunc("/sendInvitationsAsGuestOfParty", sendInvitationsAsGuestOfParty)
 
 	/*
