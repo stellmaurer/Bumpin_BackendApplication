@@ -25,8 +25,12 @@ func main() {
 	// go http.HandleFunc("/testSendiOSPushNotification", testSendiOSPushNotification)
 	// curl http://localhost:5000/testSendAndroidPushNotification
 	// go http.HandleFunc("/testSendAndroidPushNotification", testSendAndroidPushNotification)
-	// curl http://localhost:5000/createNotification -d "receiverFacebookID=10154326505409816&message=Hello&partyOrBarID=1"
-	go http.HandleFunc("/createNotification", createNotification)
+	// curl http://localhost:5000/testCreateNotification -d "receiverFacebookID=10154326505409816&message=Hello&partyOrBarID=1"
+	// go http.HandleFunc("/testCreateNotification", testCreateNotification)
+	// curl http://localhost:5000/testGetPeople
+	// go http.HandleFunc("/testGetPeople", testGetPeople)
+	// curl http://localhost:5000/testCreateAndSendNotificationsToThesePeople
+	go http.HandleFunc("/testCreateAndSendNotificationsToThesePeople", testCreateAndSendNotificationsToThesePeople)
 	// curl http://localhost:5000/getNotificationsForPerson -d "facebookID=10154326505409816"
 	go http.HandleFunc("/getNotificationsForPerson", getNotificationsForPerson)
 	// curl http://localhost:5000/markNotificationAsSeen -d "notificationID=7816555614368222646"
@@ -57,6 +61,7 @@ func main() {
 		Just returns the names of the tables that are in the database - used to check health of Elastic Beanstalk servers
 	*/
 	// curl "http://localhost:5000/tables"
+	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/tables"
 	go http.HandleFunc("/tables", tables)
 
 	/*
@@ -143,7 +148,8 @@ func main() {
 	go http.HandleFunc("/removePartyHost", removePartyHost)
 	// curl http://localhost:5000/removeBarHost -d "barID=1&facebookID=90"
 	go http.HandleFunc("/removeBarHost", removeBarHost)
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/acceptInvitationToHostParty -d "partyID=2507077996928339051&facebookID=113057999456597&isMale=false&name=Ruth%20Sidhuson"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/acceptInvitationToHostParty -d "partyID=10278103879012439008&facebookID=10154326505409816&isMale=true&name=Steve%20Ellmaurer"
+	// curl http://localhost:5000/acceptInvitationToHostParty -d "partyID=10278103879012439008&facebookID=10154326505409816&isMale=true&name=Steve%20Ellmaurer"
 	go http.HandleFunc("/acceptInvitationToHostParty", acceptInvitationToHostParty)
 	// curl http://localhost:5000/acceptInvitationToHostBar -d "barID=1&facebookID=90"
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/acceptInvitationToHostBar -d "barID=820866964051293233&facebookID=13"

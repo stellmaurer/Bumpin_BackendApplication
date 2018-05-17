@@ -288,6 +288,7 @@ func getAllBars() QueryResult {
 		dynamodbCall.Error = "getAllBars function: Scan error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true

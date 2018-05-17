@@ -74,6 +74,7 @@ func getFriendsHelper(facebookIDs []string) QueryResult {
 		dynamodbCall.Error = "getFriendsHelper function: BatchGetItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -160,6 +161,7 @@ func updatePersonStatusHelper(facebookID string, goingOut string, timeGoingOutSt
 		dynamodbCall.Error = "updatePersonStatusHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -215,6 +217,7 @@ func createBugHelper(bugID string, facebookID string, description string) QueryR
 		dynamodbCall.Error = "createBugHelper function: PutItem error. Err msg: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 
@@ -271,6 +274,7 @@ func createFeatureRequestHelper(featureRequestID string, facebookID string, desc
 		dynamodbCall.Error = "createFeatureRequestHelper function: PutItem error. Err msg: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 
@@ -397,6 +401,7 @@ func addPersonToActivityBlockList(myFacebookID string, theirFacebookID string) Q
 		dynamodbCall.Error = "addPersonToActivityBlockList function: UpdateItem error. " + "Error adding " + theirFacebookID + " to the Block List. This person most likely does not exist anymore." + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -446,6 +451,7 @@ func removePersonFromActivityBlockList(myFacebookID string, theirFacebookID stri
 		dynamodbCall.Error = "removePersonFromActivityBlockList function: UpdateItem error. " + "Error removing " + theirFacebookID + " from the Block List. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -530,6 +536,7 @@ func updateIgnoreListHelper(myFacebookID string, additionsList []string, removal
 		dynamodbCall.Error = "updateIgnoreList function: UpdateItem error. A person in the additions list most likely does not exist anymore." + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true

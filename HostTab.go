@@ -309,6 +309,16 @@ func askFriendsToHostPartyWithYou(r *http.Request, partyID string) QueryResult {
 		askFriendQueryResult := askFriendToHostPartyWithYouHelper(partyID, hostListFacebookIDs[i], hostListNames[i])
 		queryResult = convertTwoQueryResultsToOne(queryResult, askFriendQueryResult)
 	}
+
+	hostIsMale, _ := strconv.ParseBool(r.Form.Get("isMale"))
+	genderString := "her"
+	if hostIsMale == true {
+		genderString = "him"
+	}
+	message := r.Form.Get("name") + " wants you to host a party with " + genderString + "."
+	sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(hostListFacebookIDs, message, partyID)
+
+	queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
 	return queryResult
 }
 
@@ -471,11 +481,11 @@ func updateHostListForParty(r *http.Request, partyID string) QueryResult {
 		queryResult.Error = "updateHostListForParty function: HTTP post request parameter issues (additions lists): facebookID array and name array aren't the same length."
 		return queryResult
 	}
-	queryResult = updateHostListForPartyHelper(partyID, hostsToAddFacebookIDs, hostsToAddNames, hostsToRemoveFacebookIDs)
+	queryResult = updateHostListForPartyHelper(r, partyID, hostsToAddFacebookIDs, hostsToAddNames, hostsToRemoveFacebookIDs)
 	return queryResult
 }
 
-func updateHostListForPartyHelper(partyID string,
+func updateHostListForPartyHelper(r *http.Request, partyID string,
 	hostsToAddFacebookIDs []string, hostsToAddNames []string, hostsToRemoveFacebookIDs []string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
@@ -500,6 +510,16 @@ func updateHostListForPartyHelper(partyID string,
 	}
 
 	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
+
+	hostIsMale, _ := strconv.ParseBool(r.Form.Get("isMale"))
+	genderString := "her"
+	if hostIsMale == true {
+		genderString = "him"
+	}
+	message := r.Form.Get("name") + " wants you to host a party with " + genderString + "."
+	sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(hostsToAddFacebookIDs, message, partyID)
+
+	queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
 	return queryResult
 }
 
@@ -632,6 +652,7 @@ func getBarKeyHelper(key string) QueryResult {
 		dynamodbCall.Error = "getBarKeyHelper function: GetItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -686,6 +707,7 @@ func deleteBarKeyHelper(key string) QueryResult {
 		dynamodbCall.Error = "deleteBarKeyHelper function: DeleteItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -883,6 +905,7 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 		dynamodbCall.Error = "createBarHelper function: PutItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -918,6 +941,7 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 		dynamodbCall2.Error = "createBarHelper function: UpdateItem error (probable cause: your facebookID isn't in the database). " + updateItemOutputErr.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -1039,6 +1063,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, address stri
 		dynamodbCall.Error = "createPartyHelper function: PutItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -1077,6 +1102,7 @@ func createPartyHelper(facebookID string, isMale bool, name string, address stri
 		dynamodbCall2.Error = "createPartyHelper function: UpdateItem error (probable cause: your facebookID isn't in the database). " + updateItemOutputErr.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -1173,6 +1199,7 @@ func updatePartyHelper(address string, details string, drinksProvided bool, endT
 		dynamodbCall.Error = "updatePartyHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -1339,6 +1366,7 @@ func updateBarHelper(address string, attendeesMapCleanUpHourInZulu string, barID
 		dynamodbCall.Error = "updateBarHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -1392,6 +1420,7 @@ func deletePartyHelper(partyID string) QueryResult {
 		dynamodbCall.Error = "deletePartyHelper function: DeleteItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -1478,6 +1507,7 @@ func removePartyInviteFromInvitedToMapInPersonTable(facebookID string, partyID s
 		dynamodbCall.Error = "removeInvitationToPartyInPersonTable function: UpdateItem error (probable cause: this facebookID isn't in the database). " + updateItemOutputErr.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -1527,6 +1557,7 @@ func removePartyFromPartyHostForMapInPersonTable(facebookID string, partyID stri
 		dynamodbCall.Error = "removePartyFromPartyHostForMapInPersonTable function: UpdateItem error (probable cause: this facebookID isn't in the database). " + updateItemOutputErr.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -1577,6 +1608,7 @@ func deleteBarHelper(barID string) QueryResult {
 		dynamodbCall.Error = "deleteBarHelper function: DeleteItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -1644,6 +1676,7 @@ func removeBarFromBarHostForMapInPersonTable(facebookID string, barID string) Qu
 		dynamodbCall.Error = "removeBarFromBarHostForMapInPersonTable function: UpdateItem error (probable cause: this facebookID isn't in the database). " + updateItemOutputErr.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -1683,6 +1716,7 @@ func getParty(partyID string) QueryResult {
 		dynamodbCall.Error = "getParty function: GetItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -1731,6 +1765,7 @@ func getBar(barID string) QueryResult {
 		dynamodbCall.Error = "getBar function: GetItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -1805,6 +1840,7 @@ func setNumberOfInvitationsLeftForInviteesHelper(partyID string, invitees []stri
 		dynamodbCall.Error = "setNumberOfInvitationsLeftForInviteesHelper function: UpdateItem error (probable cause: this partyID isn't in the database). " + updateItemOutputErr.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -1871,6 +1907,7 @@ func askFriendToHostPartyWithYouHelper(partyID string, friendFacebookID string, 
 		dynamodbCall.Error = "askFriendToHostPartyWithYouHelper function: Problem adding host to Party: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 
@@ -1904,6 +1941,7 @@ func askFriendToHostPartyWithYouHelper(partyID string, friendFacebookID string, 
 		dynamodbCall2.Error = "askFriendToHostPartyWithYouHelper function: Problem adding partyID to Person's partyHostsFor map. " + err3.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -1969,6 +2007,7 @@ func askFriendToHostBarWithYouHelper(barID string, friendFacebookID string, name
 		dynamodbCall.Error = "askFriendToHostBarWithYouHelper function: Problem adding host to Bar: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 
@@ -2002,6 +2041,7 @@ func askFriendToHostBarWithYouHelper(barID string, friendFacebookID string, name
 		dynamodbCall2.Error = "askFriendToHostBarWithYouHelper function: Problem adding barID to Person's barHostsFor map. " + err3.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -2051,11 +2091,12 @@ func removePartyHostHelper(partyID string, facebookID string) QueryResult {
 		dynamodbCall.Error = "removePartyHostHelper function: Problem removing host from Party: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 
 	// Now we need to update the friend's Person information to let them
-	//     know that their friend is asking them to be a host of the Party.
+	//     know that they aren't a host of the party anymore.
 	expressionAttributeNames2 := make(map[string]*string)
 	partyHostFor := "partyHostFor"
 	expressionAttributeNames2["#partyHostFor"] = &partyHostFor
@@ -2078,6 +2119,7 @@ func removePartyHostHelper(partyID string, facebookID string) QueryResult {
 		dynamodbCall2.Error = "removePartyHostHelper function: Problem removing partyID from Person's partyHostsFor map. " + err3.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -2127,6 +2169,7 @@ func removeBarHostHelper(barID string, facebookID string) QueryResult {
 		dynamodbCall.Error = "removeBarHostHelper function: Problem removing host from Bar: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 
@@ -2154,6 +2197,7 @@ func removeBarHostHelper(barID string, facebookID string) QueryResult {
 		dynamodbCall2.Error = "removeBarHostHelper function: Problem removing barID from Person's barHostsFor map. " + err3.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -2212,6 +2256,7 @@ func acceptInvitationToHostPartyHelper(partyID string, facebookID string, isMale
 		dynamodbCall.Error = "acceptInvitationToHostPartyHelper function: Problem changing host status in Party table: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 
@@ -2245,6 +2290,7 @@ func acceptInvitationToHostPartyHelper(partyID string, facebookID string, isMale
 		dynamodbCall2.Error = "acceptInvitationToHostPartyHelper function: Problem changing Person's host status for partyHostsFor map. " + err3.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 
@@ -2308,6 +2354,7 @@ func acceptInvitationToHostBarHelper(barID string, facebookID string) QueryResul
 		dynamodbCall.Error = "acceptInvitationToHostBarHelper function: Problem changing host status in Bar table: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 
@@ -2341,6 +2388,7 @@ func acceptInvitationToHostBarHelper(barID string, facebookID string) QueryResul
 		dynamodbCall2.Error = "acceptInvitationToHostBarHelper function: Problem changing Person's host status for barHostsFor map. " + err3.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -2399,6 +2447,7 @@ func declineInvitationToHostPartyHelper(partyID string, facebookID string) Query
 		dynamodbCall.Error = "declineInvitationToHostPartyHelper function: Problem changing host status in Party table: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 
@@ -2427,6 +2476,7 @@ func declineInvitationToHostPartyHelper(partyID string, facebookID string) Query
 		dynamodbCall2.Error = "declineInvitationToHostPartyHelper function: Problem removing party in partyHostsFor map in Bar table. " + err3.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -2485,6 +2535,7 @@ func declineInvitationToHostBarHelper(barID string, facebookID string) QueryResu
 		dynamodbCall.Error = "declineInvitationToHostBarHelper function: Problem changing host status in Bar table: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 
@@ -2513,6 +2564,7 @@ func declineInvitationToHostBarHelper(barID string, facebookID string) QueryResu
 		dynamodbCall2.Error = "declineInvitationToHostBarHelper function: Problem removing bar in barHostsFor map in Person table. " + err3.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -2557,6 +2609,7 @@ func getBarsHelper(barIDs []string) QueryResult {
 		dynamodbCall.Error = "getBarsHelper function: BatchGetItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true

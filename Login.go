@@ -129,6 +129,7 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 		dynamodbCall.Error = "createPersonHelper function: PutItem error (this error should be seen if the person is already in the database. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 	} else {
 		queryResult.DynamodbCalls = nil
 	}
@@ -197,6 +198,7 @@ func updatePersonHelper(facebookID string, isMale bool, name string, platform st
 		dynamodbCall.Error = "updatePersonHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -233,6 +235,7 @@ func getPersonHelper(facebookID string) QueryResult {
 		dynamodbCall.Error = "getPersonHelper function: GetItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true

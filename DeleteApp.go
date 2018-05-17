@@ -62,6 +62,7 @@ func deletePersonHelper(facebookID string) QueryResult {
 		dynamodbCall.Error = "deletePersonHelper function: DeleteItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil

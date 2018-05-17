@@ -161,6 +161,7 @@ func findPartiesThatHaveExpired() (QueryResult, []PartyID) {
 			dynamodbCall.Error = "findPartiesThatHaveExpired function: Scan error. " + err2.Error()
 			dynamodbCall.Succeeded = false
 			queryResult.DynamodbCalls[0] = dynamodbCall
+			queryResult.Error += dynamodbCall.Error
 			return queryResult, nil
 		}
 		dynamodbCall.Succeeded = true
@@ -264,6 +265,7 @@ func findBarsThatRecentlyClosed() (QueryResult, []BarID) {
 			dynamodbCall.Error = "findBarsThatRecentlyClosed function: Scan error. " + err2.Error()
 			dynamodbCall.Succeeded = false
 			queryResult.DynamodbCalls[0] = dynamodbCall
+			queryResult.Error += dynamodbCall.Error
 			return queryResult, nil
 		}
 		dynamodbCall.Succeeded = true
@@ -335,6 +337,7 @@ func cleanUpAttendeesMapOfBar(barID string) QueryResult {
 		dynamodbCall.Error = "cleanUpAttendeesMapOfBar function: UpdateItem error. (probable cause: this bar may not exist)" + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil

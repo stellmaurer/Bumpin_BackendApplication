@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -44,6 +45,22 @@ func getTables() (string, error) {
 		tables = tables + *table
 	}
 	return tables, nil
+}
+
+func aggregateErrorMessagesForAllDynamoDBCallsIntoQueryResultErrorMessage(queryResult QueryResult) QueryResult {
+	if queryResult.DynamodbCalls != nil {
+		for i := 0; i < len(queryResult.DynamodbCalls); i++ {
+			if queryResult.DynamodbCalls[i].Error != "" {
+				if queryResult.Error == "" {
+					queryResult.Error += ("(Error " + strconv.Itoa(i) + "): " + queryResult.DynamodbCalls[i].Error + " ")
+				} else {
+					queryResult.Error += (" (Error " + strconv.Itoa(i) + "): " + queryResult.DynamodbCalls[i].Error + " ")
+				}
+			}
+		}
+		queryResult.DynamodbCalls = nil
+	}
+	return queryResult
 }
 
 type AndroidNotificationPayload struct {

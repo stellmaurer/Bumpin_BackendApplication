@@ -87,6 +87,7 @@ func logErrorHelper(ID string, errorType string, errorDescription string) QueryR
 		dynamodbCall.Error = "logErrorHelper function: UpdateItem error. Err msg: " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil

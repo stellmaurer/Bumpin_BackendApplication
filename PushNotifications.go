@@ -32,6 +32,126 @@ const (
 	serverKey = "AAAAo_YT2fc:APA91bEV1ctVnAhvWzO7uOpuMBcHpwYu1LaGDgHF3KZ4GtdY1yocH90Vc_fvFlmtGDKib1vYA24ci5QUdaoozpeI_kfd9QdHwGS2L8JNDd6AZh1I-zGZ8COLEPp75c_wlAG_iFE1NbIZ"
 )
 
+func testCreateAndSendNotificationsToThesePeople(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	people := []string{"10155227369101712", "10216576646672295", "10154326505409816"}
+	queryResult := createAndSendNotificationsToThesePeople(people, "This is testing the createAndSendNotifications function.", "9999")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func createAndSendNotificationsToThesePeople(facebookIDs []string, message string, partyOrBarID string) QueryResult {
+	var queryResult = QueryResult{}
+	if len(facebookIDs) == 0 {
+		queryResult.Succeeded = true
+		return queryResult
+	}
+	queryResult = getPeople(facebookIDs)
+	if queryResult.Succeeded == false {
+		return queryResult
+	}
+	dynamodbCalls := make([]DynamodbCall, 0)
+	people := queryResult.People
+	var intermediateQueryResult QueryResult
+	for i := 0; i < len(people); i++ {
+		intermediateQueryResult = QueryResult{}
+		intermediateQueryResult.Succeeded = true
+
+		person := people[i]
+		// (Step 1) Sending Push Notifications
+		if person.Platform != "Unknown" && person.DeviceToken != "Unknown" {
+			if person.Platform == "iOS" {
+				intermediateQueryResult = sendiOSPushNotification(person.DeviceToken, message, partyOrBarID)
+			}
+			if person.Platform == "Android" {
+				intermediateQueryResult = sendAndroidPushNotification(person.DeviceToken, message, partyOrBarID)
+			}
+		}
+		if intermediateQueryResult.Succeeded == false {
+			dynamodbCalls = append(dynamodbCalls, DynamodbCall{Succeeded: false, Error: intermediateQueryResult.Error})
+		}
+
+		// (Step 2) Creating Notifications in our dynamoDB so that user's can see a history of their notifications
+		intermediateQueryResult = createNotification(person.FacebookID, message, partyOrBarID)
+		if intermediateQueryResult.Succeeded == false {
+			dynamodbCalls = append(dynamodbCalls, DynamodbCall{Succeeded: false, Error: intermediateQueryResult.Error})
+		}
+	}
+	queryResult.People = nil
+	queryResult.DynamodbCalls = nil
+	if len(dynamodbCalls) > 0 {
+		queryResult.DynamodbCalls = dynamodbCalls
+	}
+	return queryResult
+}
+
+func testGetPeople(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	people := []string{"10155227369101712", "10216576646672295", "10154326505409816"}
+	queryResult := getPeople(people)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func getPeople(facebookIDs []string) QueryResult {
+	var queryResult = QueryResult{}
+	if len(facebookIDs) == 0 {
+		queryResult.Succeeded = true
+		return queryResult
+	}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "getPeople function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	var batchGetItemInput = dynamodb.BatchGetItemInput{}
+	attributesAndValues := make([]map[string]*dynamodb.AttributeValue, len(facebookIDs))
+	for i := 0; i < len(facebookIDs); i++ {
+		var attributeValue = dynamodb.AttributeValue{}
+		attributeValue.SetS(facebookIDs[i])
+		attributesAndValues[i] = make(map[string]*dynamodb.AttributeValue)
+		attributesAndValues[i]["facebookID"] = &attributeValue
+	}
+	var keysAndAttributes dynamodb.KeysAndAttributes
+	keysAndAttributes.SetKeys(attributesAndValues)
+	requestedItems := make(map[string]*dynamodb.KeysAndAttributes)
+	requestedItems["Person"] = &keysAndAttributes
+	batchGetItemInput.SetRequestItems(requestedItems)
+	batchGetItemOutput, err2 := getter.DynamoDB.BatchGetItem(&batchGetItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "getPeople function: BatchGetItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
+		return queryResult
+	}
+	dynamodbCall.Succeeded = true
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	data := batchGetItemOutput.Responses
+	people := make([]PersonData, len(facebookIDs))
+	jsonErr := dynamodbattribute.UnmarshalListOfMaps(data["Person"], &people)
+	if jsonErr != nil {
+		queryResult.Error = "getPeople function: UnmarshalListOfMaps error. " + jsonErr.Error()
+		return queryResult
+	}
+	queryResult.People = people
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
 func markNotificationAsSeen(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	notificationID := r.Form.Get("notificationID")
@@ -86,6 +206,7 @@ func markNotificationAsSeenHelper(notificationID string) QueryResult {
 		dynamodbCall.Error = "markNotificationAsSeenHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -137,6 +258,7 @@ func getNotificationsForPersonHelper(facebookID string) QueryResult {
 		dynamodbCall.Error = "getNotificationsForPersonHelper function: Query error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -156,17 +278,17 @@ func getNotificationsForPersonHelper(facebookID string) QueryResult {
 	return queryResult
 }
 
-func createNotification(w http.ResponseWriter, r *http.Request) {
+func testCreateNotification(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	receiverFacebookID := r.Form.Get("receiverFacebookID")
 	message := r.Form.Get("message")
 	partyOrBarID := r.Form.Get("partyOrBarID")
-	queryResult := createNotificationHelper(receiverFacebookID, message, partyOrBarID)
+	queryResult := createNotification(receiverFacebookID, message, partyOrBarID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-func createNotificationHelper(receiverFacebookID string, message string, partyOrBarID string) QueryResult {
+func createNotification(receiverFacebookID string, message string, partyOrBarID string) QueryResult {
 	notificationID := strconv.FormatUint(getRandomID(), 10)
 	hasBeenSeen := false
 	timeTwoWeeksFromNow := time.Now().Add(time.Duration(336) * time.Hour) // 336 hours in two weeks
@@ -221,6 +343,7 @@ func createNotificationHelper(receiverFacebookID string, message string, partyOr
 		dynamodbCall.Error = "createNotification function: PutItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 	} else {
 		queryResult.DynamodbCalls = nil
 	}
