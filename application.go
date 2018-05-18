@@ -35,6 +35,8 @@ func main() {
 	go http.HandleFunc("/getNotificationsForPerson", getNotificationsForPerson)
 	// curl http://localhost:5000/markNotificationAsSeen -d "notificationID=7816555614368222646"
 	go http.HandleFunc("/markNotificationAsSeen", markNotificationAsSeen)
+	// curl http://localhost:5000/deleteNotification -d "notificationID=10084172745335654142"
+	go http.HandleFunc("/deleteNotification", deleteNotification)
 
 	//curl http://localhost:5000/createParty -d "facebookID=30&isMale=true&name=Zander%20Dunn&address=201%20River%20St%20River%20Hills%20WI%2053215&drinksProvided=true&endTime=2017-05-20T00:00:00Z&feeForDrinks=false&invitesForNewInvitees=1&latitude=-59&longitude=42&startTime=2015-01-18T00:00:00Z&title=Baseball%20Party"
 	//curl http://localhost:5000/askFriendToHostPartyWithYou -d "partyID=11154013587666973726&friendFacebookID=010101&name=Gerrard%20Holler"

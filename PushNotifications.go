@@ -32,6 +32,50 @@ const (
 	serverKey = "AAAAo_YT2fc:APA91bEV1ctVnAhvWzO7uOpuMBcHpwYu1LaGDgHF3KZ4GtdY1yocH90Vc_fvFlmtGDKib1vYA24ci5QUdaoozpeI_kfd9QdHwGS2L8JNDd6AZh1I-zGZ8COLEPp75c_wlAG_iFE1NbIZ"
 )
 
+func deleteNotification(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	notificationID := r.Form.Get("notificationID")
+	queryResult := deleteNotificationHelper(notificationID)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func deleteNotificationHelper(notificationID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "deleteNotification function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetS(notificationID)
+	keyMap["notificationID"] = &key
+
+	var deleteItemInput = dynamodb.DeleteItemInput{}
+	deleteItemInput.SetTableName("Notification")
+	deleteItemInput.SetKey(keyMap)
+
+	_, err2 := getter.DynamoDB.DeleteItem(&deleteItemInput)
+	if err2 != nil {
+		queryResult.Error = "deleteNotification function: DeleteItem error. " + err2.Error()
+		return queryResult
+	}
+	queryResult.Succeeded = true
+	return queryResult
+}
+
 func testCreateAndSendNotificationsToThesePeople(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	people := []string{"10155227369101712", "10216576646672295", "10154326505409816"}
