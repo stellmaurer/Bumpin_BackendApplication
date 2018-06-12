@@ -90,6 +90,7 @@ type PersonData struct {
 	InvitedTo                         map[string]bool   `json:"invitedTo"`
 	IsMale                            bool              `json:"isMale"`
 	Name                              string            `json:"name"`
+	OutstandingNotifications          uint64            `json:"outstandingNotifications"`
 	PartyHostFor                      map[string]bool   `json:"partyHostFor"`
 	BarHostFor                        map[string]bool   `json:"barHostFor"`
 	Status                            map[string]string `json:"status"`

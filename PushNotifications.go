@@ -32,6 +32,128 @@ const (
 	serverKey = "AAAAo_YT2fc:APA91bEV1ctVnAhvWzO7uOpuMBcHpwYu1LaGDgHF3KZ4GtdY1yocH90Vc_fvFlmtGDKib1vYA24ci5QUdaoozpeI_kfd9QdHwGS2L8JNDd6AZh1I-zGZ8COLEPp75c_wlAG_iFE1NbIZ"
 )
 
+func clearOutstandingNotificationCountForPerson(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	facebookID := r.Form.Get("facebookID")
+	queryResult := clearOutstandingNotificationCountForPersonHelper(facebookID)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func clearOutstandingNotificationCountForPersonHelper(facebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "clearOutstandingNotificationCountForPersonHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var outstandingNotificationsString = "outstandingNotifications"
+	expressionAttributeNames["#outstandingNotifications"] = &outstandingNotificationsString
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var zeroAttribute = dynamodb.AttributeValue{}
+	zeroAttribute.SetN("0")
+	expressionValuePlaceholders[":zero"] = &zeroAttribute
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetS(facebookID)
+	keyMap["facebookID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	var updateExpression = "SET #outstandingNotifications=:zero"
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Person")
+	updateItemInput.UpdateExpression = &updateExpression
+	_, updateItemOutputErr := getter.DynamoDB.UpdateItem(&updateItemInput)
+
+	var dynamodbCall1 = DynamodbCall{}
+	if updateItemOutputErr != nil {
+		dynamodbCall1.Error = "clearOutstandingNotificationCountForPersonHelper function: " + updateItemOutputErr.Error()
+		dynamodbCall1.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall1
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func incrementOutstandingNotificationCountForPerson(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	facebookID := r.Form.Get("facebookID")
+	queryResult := incrementOutstandingNotificationCountForPersonHelper(facebookID)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func incrementOutstandingNotificationCountForPersonHelper(facebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "incrementOutstandingNotificationCountForPersonHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var outstandingNotificationsString = "outstandingNotifications"
+	expressionAttributeNames["#outstandingNotifications"] = &outstandingNotificationsString
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var incrementAttribute = dynamodb.AttributeValue{}
+	incrementAttribute.SetN("1")
+	expressionValuePlaceholders[":increment"] = &incrementAttribute
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetS(facebookID)
+	keyMap["facebookID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	var updateExpression = "ADD #outstandingNotifications :increment"
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Person")
+	updateItemInput.UpdateExpression = &updateExpression
+	_, updateItemOutputErr := getter.DynamoDB.UpdateItem(&updateItemInput)
+
+	var dynamodbCall1 = DynamodbCall{}
+	if updateItemOutputErr != nil {
+		dynamodbCall1.Error = "incrementOutstandingNotificationCountForPersonHelper function: " + updateItemOutputErr.Error()
+		dynamodbCall1.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall1
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
 func deleteNotification(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	notificationID := r.Form.Get("notificationID")
@@ -90,13 +212,27 @@ func createAndSendNotificationsToThesePeople(facebookIDs []string, message strin
 		queryResult.Succeeded = true
 		return queryResult
 	}
+	dynamodbCalls := make([]DynamodbCall, 0)
+
+	var intermediateQueryResult QueryResult
+	// update each person's number of outstanding push notifications before we send
+	//		the push notification payload so that we send the correct badger number
+	for i := 0; i < len(facebookIDs); i++ {
+		intermediateQueryResult = QueryResult{}
+		intermediateQueryResult.Succeeded = true
+
+		intermediateQueryResult = incrementOutstandingNotificationCountForPersonHelper(facebookIDs[i])
+		if intermediateQueryResult.Succeeded == false {
+			dynamodbCalls = append(dynamodbCalls, DynamodbCall{Succeeded: false, Error: intermediateQueryResult.Error})
+		}
+	}
+
 	queryResult = getPeople(facebookIDs)
 	if queryResult.Succeeded == false {
 		return queryResult
 	}
-	dynamodbCalls := make([]DynamodbCall, 0)
+
 	people := queryResult.People
-	var intermediateQueryResult QueryResult
 	for i := 0; i < len(people); i++ {
 		intermediateQueryResult = QueryResult{}
 		intermediateQueryResult.Succeeded = true
@@ -105,7 +241,7 @@ func createAndSendNotificationsToThesePeople(facebookIDs []string, message strin
 		// (Step 1) Sending Push Notifications
 		if person.Platform != "Unknown" && person.DeviceToken != "Unknown" {
 			if person.Platform == "iOS" {
-				intermediateQueryResult = sendiOSPushNotification(person.DeviceToken, message, partyOrBarID)
+				intermediateQueryResult = sendiOSPushNotification(person.DeviceToken, person.OutstandingNotifications, message, partyOrBarID)
 			}
 			if person.Platform == "Android" {
 				intermediateQueryResult = sendAndroidPushNotification(person.DeviceToken, message, partyOrBarID)
@@ -396,7 +532,9 @@ func createNotification(receiverFacebookID string, message string, partyOrBarID 
 }
 
 func testSendiOSPushNotification(w http.ResponseWriter, r *http.Request) {
-	queryResult := sendiOSPushNotification("ff63ea4106df5eb744b3289270976083f52bd0abe225d43501b214904ece3d9c", "This is a message!", "000111")
+	r.ParseForm()
+	deviceToken := r.Form.Get("deviceToken")
+	queryResult := sendiOSPushNotification(deviceToken, 1, "This is a message!", "000111")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -407,7 +545,7 @@ func testSendAndroidPushNotification(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-func sendiOSPushNotification(deviceToken string, message string, partyOrBarID string) QueryResult {
+func sendiOSPushNotification(deviceToken string, outstandingNotifications uint64, message string, partyOrBarID string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 
@@ -425,18 +563,35 @@ func sendiOSPushNotification(deviceToken string, message string, partyOrBarID st
 		TeamID: "3SM66DY534",
 	}
 
+	outstandingNotificationCount := strconv.FormatUint(outstandingNotifications, 10)
+
 	notification := &apns2.Notification{
 		DeviceToken: deviceToken,
 		Topic:       "BumpinBundleIdentifier",
-		Payload:     []byte(`{"aps":{"alert":"` + message + `"},"partyOrBarID":"` + partyOrBarID + `"}`),
+		Payload:     []byte(`{"aps":{"alert":"` + message + `","badge":` + outstandingNotificationCount + `},"partyOrBarID":"` + partyOrBarID + `"}`),
 	}
 
 	client := apns2.NewTokenClient(token)
-	_, err2 := client.Push(notification)
-	if err != nil {
-		queryResult.Error = err2.Error()
+	client.Production()
+	status, err2 := client.Push(notification)
+	if err2 != nil {
+		queryResult.Error = "Production push notification failed: " + err2.Error()
 		return queryResult
 	}
+
+	if status.Reason != "" {
+		client.Development()
+		status2, err3 := client.Push(notification)
+		if err3 != nil {
+			queryResult.Error = "Development push notification failed: " + err3.Error()
+			return queryResult
+		}
+		if status2.Reason != "" {
+			queryResult.Error = "Development push notification failed: " + status2.Reason
+			return queryResult
+		}
+	}
+
 	queryResult.Succeeded = true
 	return queryResult
 }

@@ -78,7 +78,7 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	var invitedToAttributeValue = dynamodb.AttributeValue{}
 	var isMaleAttributeValue = dynamodb.AttributeValue{}
 	var nameAttributeValue = dynamodb.AttributeValue{}
-	var notificationsAttributeValue = dynamodb.AttributeValue{}
+	var outstandingNotificationsAttributeValue = dynamodb.AttributeValue{}
 	var platformAttributeValue = dynamodb.AttributeValue{}
 	var deviceTokenAttributeValue = dynamodb.AttributeValue{}
 	var partyHostForAttributeValue = dynamodb.AttributeValue{}
@@ -90,7 +90,7 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	invitedToAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	isMaleAttributeValue.SetBOOL(isMale)
 	nameAttributeValue.SetS(name)
-	notificationsAttributeValue.SetL(make([]*dynamodb.AttributeValue, 0))
+	outstandingNotificationsAttributeValue.SetN("0")
 	platformAttributeValue.SetS(platform)
 	deviceTokenAttributeValue.SetS(deviceToken)
 	partyHostForAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
@@ -109,7 +109,7 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	expressionValues["invitedTo"] = &invitedToAttributeValue
 	expressionValues["isMale"] = &isMaleAttributeValue
 	expressionValues["name"] = &nameAttributeValue
-	expressionValues["notifications"] = &notificationsAttributeValue
+	expressionValues["outstandingNotifications"] = &outstandingNotificationsAttributeValue
 	expressionValues["platform"] = &platformAttributeValue
 	expressionValues["deviceToken"] = &deviceTokenAttributeValue
 	expressionValues["partyHostFor"] = &partyHostForAttributeValue

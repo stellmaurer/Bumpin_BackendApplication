@@ -21,8 +21,8 @@ func main() {
 	// go http.HandleFunc("/testiOSPushNotification", testiOSPushNotification)
 	// curl http://localhost:5000/testAndroidPushNotification
 	// go http.HandleFunc("/testAndroidPushNotification", testAndroidPushNotification)
-	// curl http://localhost:5000/testSendiOSPushNotification
-	// go http.HandleFunc("/testSendiOSPushNotification", testSendiOSPushNotification)
+	// curl http://localhost:5000/testSendiOSPushNotification -d "deviceToken=fd21a7d4f1da491ab1b8e817fbd5fe602264ae9a5f9ce27780c8104c132bd891"
+	go http.HandleFunc("/testSendiOSPushNotification", testSendiOSPushNotification)
 	// curl http://localhost:5000/testSendAndroidPushNotification
 	// go http.HandleFunc("/testSendAndroidPushNotification", testSendAndroidPushNotification)
 	// curl http://localhost:5000/testCreateNotification -d "receiverFacebookID=10154326505409816&message=Hello&partyOrBarID=1"
@@ -30,13 +30,18 @@ func main() {
 	// curl http://localhost:5000/testGetPeople
 	// go http.HandleFunc("/testGetPeople", testGetPeople)
 	// curl http://localhost:5000/testCreateAndSendNotificationsToThesePeople
-	go http.HandleFunc("/testCreateAndSendNotificationsToThesePeople", testCreateAndSendNotificationsToThesePeople)
+	// go http.HandleFunc("/testCreateAndSendNotificationsToThesePeople", testCreateAndSendNotificationsToThesePeople)
 	// curl http://localhost:5000/getNotificationsForPerson -d "facebookID=10154326505409816"
 	go http.HandleFunc("/getNotificationsForPerson", getNotificationsForPerson)
 	// curl http://localhost:5000/markNotificationAsSeen -d "notificationID=7816555614368222646"
 	go http.HandleFunc("/markNotificationAsSeen", markNotificationAsSeen)
 	// curl http://localhost:5000/deleteNotification -d "notificationID=10084172745335654142"
 	go http.HandleFunc("/deleteNotification", deleteNotification)
+
+	// curl http://localhost:5000/clearOutstandingNotificationCountForPerson -d "facebookID=10154326505409816"
+	go http.HandleFunc("/clearOutstandingNotificationCountForPerson", clearOutstandingNotificationCountForPerson)
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/incrementOutstandingNotificationCountForPerson -d "facebookID=10154326505409816"
+	go http.HandleFunc("/incrementOutstandingNotificationCountForPerson", incrementOutstandingNotificationCountForPerson)
 
 	//curl http://localhost:5000/createParty -d "facebookID=30&isMale=true&name=Zander%20Dunn&address=201%20River%20St%20River%20Hills%20WI%2053215&drinksProvided=true&endTime=2017-05-20T00:00:00Z&feeForDrinks=false&invitesForNewInvitees=1&latitude=-59&longitude=42&startTime=2015-01-18T00:00:00Z&title=Baseball%20Party"
 	//curl http://localhost:5000/askFriendToHostPartyWithYou -d "partyID=11154013587666973726&friendFacebookID=010101&name=Gerrard%20Holler"
@@ -192,6 +197,7 @@ func main() {
 	go http.HandleFunc("/createOrUpdatePerson", createOrUpdatePerson)
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getPerson?facebookID=10155613117039816"
 	// curl "http://localhost:5000/getPerson?facebookID=10155613117039816"
+	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getPerson?facebookID=10154326505409816"
 	go http.HandleFunc("/getPerson", getPerson)
 
 	/*
