@@ -27,6 +27,8 @@ func createOrUpdatePerson(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
 	name := r.Form.Get("name")
+	platform := r.Form.Get("platform")
+	deviceToken := r.Form.Get("deviceToken")
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	if isMaleConvErr != nil {
@@ -34,8 +36,8 @@ func createOrUpdatePerson(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult1 := createPersonHelper(facebookID, isMale, name)
-	queryResult2 := updatePersonHelper(facebookID, isMale, name)
+	queryResult1 := createPersonHelper(facebookID, isMale, name, platform, deviceToken)
+	queryResult2 := updatePersonHelper(facebookID, isMale, name, platform, deviceToken)
 	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
@@ -48,7 +50,7 @@ func getPerson(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-func createPersonHelper(facebookID string, isMale bool, name string) QueryResult {
+func createPersonHelper(facebookID string, isMale bool, name string, platform string, deviceToken string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -76,6 +78,9 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	var invitedToAttributeValue = dynamodb.AttributeValue{}
 	var isMaleAttributeValue = dynamodb.AttributeValue{}
 	var nameAttributeValue = dynamodb.AttributeValue{}
+	var outstandingNotificationsAttributeValue = dynamodb.AttributeValue{}
+	var platformAttributeValue = dynamodb.AttributeValue{}
+	var deviceTokenAttributeValue = dynamodb.AttributeValue{}
 	var partyHostForAttributeValue = dynamodb.AttributeValue{}
 	var peopleBlockingTheirActivityFromMeAttributeValue = dynamodb.AttributeValue{}
 	var peopleToIgnoreAttributeValue = dynamodb.AttributeValue{}
@@ -85,6 +90,9 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	invitedToAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	isMaleAttributeValue.SetBOOL(isMale)
 	nameAttributeValue.SetS(name)
+	outstandingNotificationsAttributeValue.SetN("0")
+	platformAttributeValue.SetS(platform)
+	deviceTokenAttributeValue.SetS(deviceToken)
 	partyHostForAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	peopleBlockingTheirActivityFromMeAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	peopleToIgnoreAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
@@ -101,6 +109,9 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	expressionValues["invitedTo"] = &invitedToAttributeValue
 	expressionValues["isMale"] = &isMaleAttributeValue
 	expressionValues["name"] = &nameAttributeValue
+	expressionValues["outstandingNotifications"] = &outstandingNotificationsAttributeValue
+	expressionValues["platform"] = &platformAttributeValue
+	expressionValues["deviceToken"] = &deviceTokenAttributeValue
 	expressionValues["partyHostFor"] = &partyHostForAttributeValue
 	expressionValues["peopleBlockingTheirActivityFromMe"] = &peopleBlockingTheirActivityFromMeAttributeValue
 	expressionValues["peopleToIgnore"] = &peopleToIgnoreAttributeValue
@@ -118,6 +129,7 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 		dynamodbCall.Error = "createPersonHelper function: PutItem error (this error should be seen if the person is already in the database. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 	} else {
 		queryResult.DynamodbCalls = nil
 	}
@@ -125,7 +137,7 @@ func createPersonHelper(facebookID string, isMale bool, name string) QueryResult
 	return queryResult
 }
 
-func updatePersonHelper(facebookID string, isMale bool, name string) QueryResult {
+func updatePersonHelper(facebookID string, isMale bool, name string, platform string, deviceToken string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -146,16 +158,26 @@ func updatePersonHelper(facebookID string, isMale bool, name string) QueryResult
 	expressionAttributeNames := make(map[string]*string)
 	var isMaleString = "isMale"
 	var nameString = "name"
+	var platformString = "platform"
+	var deviceTokenString = "deviceToken"
 	expressionAttributeNames["#isMale"] = &isMaleString
 	expressionAttributeNames["#name"] = &nameString
+	expressionAttributeNames["#platform"] = &platformString
+	expressionAttributeNames["#deviceToken"] = &deviceTokenString
 
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 	var isMaleAttributeValue = dynamodb.AttributeValue{}
 	var nameAttributeValue = dynamodb.AttributeValue{}
+	var platformAttributeValue = dynamodb.AttributeValue{}
+	var deviceTokenAttributeValue = dynamodb.AttributeValue{}
 	isMaleAttributeValue.SetBOOL(isMale)
 	nameAttributeValue.SetS(name)
+	platformAttributeValue.SetS(platform)
+	deviceTokenAttributeValue.SetS(deviceToken)
 	expressionValuePlaceholders[":isMale"] = &isMaleAttributeValue
 	expressionValuePlaceholders[":name"] = &nameAttributeValue
+	expressionValuePlaceholders[":platform"] = &platformAttributeValue
+	expressionValuePlaceholders[":deviceToken"] = &deviceTokenAttributeValue
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
@@ -167,7 +189,7 @@ func updatePersonHelper(facebookID string, isMale bool, name string) QueryResult
 	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
 	updateItemInput.SetKey(keyMap)
 	updateItemInput.SetTableName("Person")
-	updateExpression := "SET #isMale=:isMale, #name=:name"
+	updateExpression := "SET #isMale=:isMale, #name=:name, #platform=:platform, #deviceToken=:deviceToken"
 	updateItemInput.UpdateExpression = &updateExpression
 
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
@@ -176,6 +198,7 @@ func updatePersonHelper(facebookID string, isMale bool, name string) QueryResult
 		dynamodbCall.Error = "updatePersonHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -212,6 +235,7 @@ func getPersonHelper(facebookID string) QueryResult {
 		dynamodbCall.Error = "getPersonHelper function: GetItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true

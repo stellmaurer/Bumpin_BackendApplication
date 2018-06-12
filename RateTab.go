@@ -118,6 +118,7 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 		dynamodbCall.Error = "ratePartyHelper function: UpdateItem error (probable cause: this party doesn't exist or you aren't invited to this party). " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -195,6 +196,7 @@ func rateBarHelper(barID string, facebookID string, isMale bool, name string, ra
 		dynamodbCall.Error = "rateBarHelper function: UpdateItem error. (probable cause: this party may not exist)" + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil

@@ -174,6 +174,13 @@ func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	queryResult = inviteFriendToPartyHelper(partyID, myFacebookID, isHost, numberOfInvitesToGive, friendFacebookID, isMale, name)
+
+	if queryResult.Succeeded == true {
+		message := r.Form.Get("name") + " invited you to a party."
+		sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople([]string{friendFacebookID}, message, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }
@@ -216,6 +223,7 @@ func getPartiesHelper(partyIDs []string) QueryResult {
 		dynamodbCall.Error = "getPartiesHelper function: BatchGetItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	dynamodbCall.Succeeded = true
@@ -294,6 +302,7 @@ func barsCloseToMeHelper(latitude float64, longitude float64) QueryResult {
 			dynamodbCall.Error = "barsCloseToMeHelper function: Scan error. " + err2.Error()
 			dynamodbCall.Succeeded = false
 			queryResult.DynamodbCalls[0] = dynamodbCall
+			queryResult.Error += dynamodbCall.Error
 			return queryResult
 		}
 		dynamodbCall.Succeeded = true
@@ -364,6 +373,7 @@ func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, stat
 		dynamodbCall.Error = "changeAttendanceStatusToPartyHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -440,6 +450,7 @@ func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, i
 		dynamodbCall.Error = "createOrUpdateAttendeeHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -499,6 +510,7 @@ func changeAtPartyStatusHelper(partyID string, facebookID string, atParty bool, 
 		dynamodbCall.Error = "changeAtPartyStatusHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -601,15 +613,16 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool,
 	keyMap["partyID"] = &key
 
 	var updateItemInput = dynamodb.UpdateItemInput{}
-	var conditionExpression = "attribute_not_exists(#i.#f) AND (#i.#m.#n >= :one)"
-	var updateExpression = "SET #i.#f=:invitee ADD #i.#m.#n :decrement"
+	var updateExpression = ""
 	if isHost == true {
 		// If this is a host inviting someone, ignore the number of invites they
 		//		have left, because they get unlimited invitations as a host.
-		conditionExpression = "attribute_not_exists(#i.#f)"
 		updateExpression = "SET #i.#f=:invitee"
+	} else {
+		var conditionExpression = "#i.#m.#n >= :one"
+		updateItemInput.SetConditionExpression(conditionExpression)
+		updateExpression = "SET #i.#f=:invitee ADD #i.#m.#n :decrement"
 	}
-	updateItemInput.SetConditionExpression(conditionExpression)
 	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
 	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
 	updateItemInput.SetKey(keyMap)
@@ -656,6 +669,7 @@ func inviteFriendToPartyHelper(partyID string, myFacebookID string, isHost bool,
 		dynamodbCall2.Error = "inviteFriendToPartyHelper function: UpdateItem2 error (probable cause: your friend's facebookID isn't in the database). " + updateItemOutputErr2.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -733,6 +747,7 @@ func removeFriendFromPartyHelper(partyID string, friendFacebookID string) QueryR
 		dynamodbCall2.Error = "removeFriendFromPartyHelper function: UpdateItem2 error (probable cause: your friend's facebookID isn't in the database). " + updateItemOutputErr2.Error()
 		dynamodbCall2.Succeeded = false
 		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
 		return queryResult
 	}
 	queryResult.DynamodbCalls = nil
@@ -775,7 +790,15 @@ func sendInvitationsAsGuestOfParty(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
+
 	queryResult = sendInvitationsAsGuestOfPartyHelper(partyID, guestFacebookID, additionsListFacebookID, additionsListIsMale, additionsListName)
+
+	if queryResult.Succeeded == true {
+		message := r.Form.Get("guestName") + " invited you to a party."
+		sendPushNotificationsQueryResult := createAndSendNotificationsToThesePeople(additionsListFacebookID, message, partyID)
+		queryResult = convertTwoQueryResultsToOne(queryResult, sendPushNotificationsQueryResult)
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }

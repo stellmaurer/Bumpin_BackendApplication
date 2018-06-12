@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -46,6 +47,41 @@ func getTables() (string, error) {
 	return tables, nil
 }
 
+func aggregateErrorMessagesForAllDynamoDBCallsIntoQueryResultErrorMessage(queryResult QueryResult) QueryResult {
+	if queryResult.DynamodbCalls != nil {
+		for i := 0; i < len(queryResult.DynamodbCalls); i++ {
+			if queryResult.DynamodbCalls[i].Error != "" {
+				if queryResult.Error == "" {
+					queryResult.Error += ("(Error " + strconv.Itoa(i) + "): " + queryResult.DynamodbCalls[i].Error + " ")
+				} else {
+					queryResult.Error += (" (Error " + strconv.Itoa(i) + "): " + queryResult.DynamodbCalls[i].Error + " ")
+				}
+			}
+		}
+		queryResult.DynamodbCalls = nil
+	}
+	return queryResult
+}
+
+type AndroidNotificationPayload struct {
+	Message        string         `json:"message"`
+	AdditionalData AdditionalData `json:"additionalData"`
+}
+
+type AdditionalData struct {
+	PartyOrBarID string `json:"partyOrBarID"`
+}
+
+// Notification : A notification from the database in json format
+type Notification struct {
+	NotificationID     string `json:"notificationID"`
+	ReceiverFacebookID string `json:"receiverFacebookID"`
+	Message            string `json:"message"`
+	PartyOrBarID       string `json:"partyOrBarID"`
+	HasBeenSeen        bool   `json:"hasBeenSeen"`
+	ExpiresAt          int64  `json:"expiresAt"`
+}
+
 // PersonData : A person from the database in json format
 type PersonData struct {
 	PeopleBlockingTheirActivityFromMe map[string]bool   `json:"peopleBlockingTheirActivityFromMe"`
@@ -54,9 +90,12 @@ type PersonData struct {
 	InvitedTo                         map[string]bool   `json:"invitedTo"`
 	IsMale                            bool              `json:"isMale"`
 	Name                              string            `json:"name"`
+	OutstandingNotifications          uint64            `json:"outstandingNotifications"`
 	PartyHostFor                      map[string]bool   `json:"partyHostFor"`
 	BarHostFor                        map[string]bool   `json:"barHostFor"`
 	Status                            map[string]string `json:"status"`
+	Platform                          string            `json:"platform"`
+	DeviceToken                       string            `json:"deviceToken"`
 }
 
 // PartyData : A party from the database in json format
@@ -173,6 +212,7 @@ type QueryResult struct {
 	People        []PersonData   `json:"people"`
 	Parties       []PartyData    `json:"parties"`
 	Bars          []BarData      `json:"bars"`
+	Notifications []Notification `json:"notifications"`
 }
 
 // DynamodbCall : The result of a dynamodb call.
