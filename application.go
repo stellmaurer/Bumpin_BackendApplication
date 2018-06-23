@@ -15,6 +15,12 @@ import "net/http"
 func main() {
 
 	/*
+		Daily notifications
+	*/
+	// curl http://localhost:5000/sendGoingOutStatusNotificationToPeopleWhoHaveFriendsGoingOutAndHaveALocalTimeEqualToSevenPM
+	go http.HandleFunc("/sendGoingOutStatusNotificationToPeopleWhoHaveFriendsGoingOutAndHaveALocalTimeEqualToSevenPM", sendGoingOutStatusNotificationToPeopleWhoHaveFriendsGoingOutAndHaveALocalTimeEqualToSevenPM)
+
+	/*
 		Push Notification Testing
 	*/
 	// curl http://localhost:5000/testiOSPushNotification
@@ -63,6 +69,12 @@ func main() {
 	// curl http://localhost:5000/cleanUpAttendeesMapForBarsThatRecentlyClosed
 	// 		Cleanup attendee list of any bar that just closed
 	go http.HandleFunc("/cleanUpAttendeesMapForBarsThatRecentlyClosed", cleanUpAttendeesMapForBarsThatRecentlyClosed)
+
+	/*
+		Cleanup of numberOfFriendsThatMightGoOut in Person table
+	*/
+	// curl http://localhost:5000/clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight
+	go http.HandleFunc("/clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight", clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight)
 
 	/*
 		Just returns the names of the tables that are in the database - used to check health of Elastic Beanstalk servers
@@ -209,6 +221,11 @@ func main() {
 	go http.HandleFunc("/updateIgnoreList", updateIgnoreList)
 	// curl http://localhost:5000/updatePersonStatus -d "facebookID=10154326505409816&goingOut=Yes&timeGoingOutStatusWasSet=2000-01-01T00:00:00Z&manuallySet=Yes"
 	go http.HandleFunc("/updatePersonStatus", updatePersonStatus)
+	// curl http://localhost:5000/incrementNumberOfFriendsThatMightGoOutForTheseFriends -d "facebookID=10154326505409816&friendFacebookIDs=10155227369101712,1617903301590247,10203989030603248"
+	go http.HandleFunc("/incrementNumberOfFriendsThatMightGoOutForTheseFriends", incrementNumberOfFriendsThatMightGoOutForTheseFriends)
+	// curl http://localhost:5000/decrementNumberOfFriendsThatMightGoOutForTheseFriends -d "facebookID=10154326505409816&friendFacebookIDs=10155227369101712,1617903301590247,10203989030603248"
+	go http.HandleFunc("/decrementNumberOfFriendsThatMightGoOutForTheseFriends", decrementNumberOfFriendsThatMightGoOutForTheseFriends)
+	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getFriends?facebookIDs=10155227369101712,10203989030603248,102078678319995"
 	// curl "http://localhost:5000/getFriends?facebookIDs=10213227731221423,10155513390409021,10108057048841417"
 	go http.HandleFunc("/getFriends", getFriends)
 

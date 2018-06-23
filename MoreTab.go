@@ -24,6 +24,202 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
+func decrementNumberOfFriendsThatMightGoOutForTheseFriends(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	var queryResult = QueryResult{}
+	// facebookID := r.Form.Get("facebookID")
+	if r.Form.Get("friendFacebookIDs") == "" {
+		queryResult.Succeeded = true
+		queryResult.DynamodbCalls = nil
+	} else {
+		friendFacebookIDs := strings.Split(r.Form.Get("friendFacebookIDs"), ",")
+		queryResult = decrementNumberOfFriendsThatMightGoOutForTheseFriendsHelper(friendFacebookIDs)
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func decrementNumberOfFriendsThatMightGoOutForTheseFriendsHelper(facebookIDs []string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	if len(facebookIDs) == 0 {
+		queryResult.Succeeded = true
+		return queryResult
+	}
+	dynamodbCalls := make([]DynamodbCall, 0)
+
+	var intermediateQueryResult QueryResult
+
+	for i := 0; i < len(facebookIDs); i++ {
+		intermediateQueryResult = QueryResult{}
+		intermediateQueryResult.Succeeded = true
+
+		intermediateQueryResult = decrementNumberOfFriendsThatMightGoOutForThisPerson(facebookIDs[i])
+		if intermediateQueryResult.Succeeded == false {
+			dynamodbCalls = append(dynamodbCalls, DynamodbCall{Succeeded: false, Error: intermediateQueryResult.Error})
+		}
+	}
+
+	queryResult.DynamodbCalls = dynamodbCalls
+	if len(dynamodbCalls) == 0 {
+		queryResult.DynamodbCalls = nil
+	}
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func decrementNumberOfFriendsThatMightGoOutForThisPerson(facebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "decrementNumberOfFriendsThatMightGoOutForThisPerson function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var numberOfFriendsThatMightGoOutString = "numberOfFriendsThatMightGoOut"
+	expressionAttributeNames["#numberOfFriendsThatMightGoOut"] = &numberOfFriendsThatMightGoOutString
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var negativeOneAttributeValue = dynamodb.AttributeValue{}
+	negativeOneAttributeValue.SetN("-1")
+	expressionValuePlaceholders[":negativeOne"] = &negativeOneAttributeValue
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetS(facebookID)
+	keyMap["facebookID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Person")
+	updateExpression := "ADD #numberOfFriendsThatMightGoOut :negativeOne"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "decrementNumberOfFriendsThatMightGoOutForThisPerson function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func incrementNumberOfFriendsThatMightGoOutForTheseFriends(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	var queryResult = QueryResult{}
+	// facebookID := r.Form.Get("facebookID")
+	if r.Form.Get("friendFacebookIDs") == "" {
+		queryResult.Succeeded = true
+		queryResult.DynamodbCalls = nil
+	} else {
+		friendFacebookIDs := strings.Split(r.Form.Get("friendFacebookIDs"), ",")
+		queryResult = incrementNumberOfFriendsThatMightGoOutForTheseFriendsHelper(friendFacebookIDs)
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func incrementNumberOfFriendsThatMightGoOutForTheseFriendsHelper(facebookIDs []string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	if len(facebookIDs) == 0 {
+		queryResult.Succeeded = true
+		return queryResult
+	}
+	dynamodbCalls := make([]DynamodbCall, 0)
+
+	var intermediateQueryResult QueryResult
+
+	for i := 0; i < len(facebookIDs); i++ {
+		intermediateQueryResult = QueryResult{}
+		intermediateQueryResult.Succeeded = true
+
+		intermediateQueryResult = incrementNumberOfFriendsThatMightGoOutForThisPerson(facebookIDs[i])
+		if intermediateQueryResult.Succeeded == false {
+			dynamodbCalls = append(dynamodbCalls, DynamodbCall{Succeeded: false, Error: intermediateQueryResult.Error})
+		}
+	}
+
+	queryResult.DynamodbCalls = dynamodbCalls
+	if len(dynamodbCalls) == 0 {
+		queryResult.DynamodbCalls = nil
+	}
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func incrementNumberOfFriendsThatMightGoOutForThisPerson(facebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "incrementNumberOfFriendsThatMightGoOutForThisPerson function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var numberOfFriendsThatMightGoOutString = "numberOfFriendsThatMightGoOut"
+	expressionAttributeNames["#numberOfFriendsThatMightGoOut"] = &numberOfFriendsThatMightGoOutString
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var oneAttributeValue = dynamodb.AttributeValue{}
+	oneAttributeValue.SetN("1")
+	expressionValuePlaceholders[":one"] = &oneAttributeValue
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetS(facebookID)
+	keyMap["facebookID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Person")
+	updateExpression := "ADD #numberOfFriendsThatMightGoOut :one"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "incrementNumberOfFriendsThatMightGoOutForThisPerson function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
 func getFriends(w http.ResponseWriter, r *http.Request) {
 	var queryResult = QueryResult{}
 	if r.URL.Query().Get("facebookIDs") == "" {
