@@ -29,6 +29,7 @@ func createOrUpdatePerson(w http.ResponseWriter, r *http.Request) {
 	name := r.Form.Get("name")
 	platform := r.Form.Get("platform")
 	deviceToken := r.Form.Get("deviceToken")
+	sevenPMLocalHourInZulu := r.Form.Get("sevenPMLocalHourInZulu")
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	if isMaleConvErr != nil {
@@ -36,8 +37,8 @@ func createOrUpdatePerson(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult1 := createPersonHelper(facebookID, isMale, name, platform, deviceToken)
-	queryResult2 := updatePersonHelper(facebookID, isMale, name, platform, deviceToken)
+	queryResult1 := createPersonHelper(facebookID, isMale, name, platform, deviceToken, sevenPMLocalHourInZulu)
+	queryResult2 := updatePersonHelper(facebookID, isMale, name, platform, deviceToken, sevenPMLocalHourInZulu)
 	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
@@ -50,7 +51,7 @@ func getPerson(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-func createPersonHelper(facebookID string, isMale bool, name string, platform string, deviceToken string) QueryResult {
+func createPersonHelper(facebookID string, isMale bool, name string, platform string, deviceToken string, sevenPMLocalHourInZulu string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -84,6 +85,8 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	var partyHostForAttributeValue = dynamodb.AttributeValue{}
 	var peopleBlockingTheirActivityFromMeAttributeValue = dynamodb.AttributeValue{}
 	var peopleToIgnoreAttributeValue = dynamodb.AttributeValue{}
+	var sevenPMLocalHourInZuluAttributeValue = dynamodb.AttributeValue{}
+	var numberOfFriendsThatMightGoOutAttributeValue = dynamodb.AttributeValue{}
 	var goingOutStatusAttributeValue = dynamodb.AttributeValue{}
 	barHostForAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	facebookIDAttributeValue.SetS(facebookID)
@@ -96,6 +99,8 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	partyHostForAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	peopleBlockingTheirActivityFromMeAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	peopleToIgnoreAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
+	sevenPMLocalHourInZuluAttributeValue.SetN(sevenPMLocalHourInZulu)
+	numberOfFriendsThatMightGoOutAttributeValue.SetN("0")
 	statusMap := make(map[string]*dynamodb.AttributeValue)
 	var goingOutAttribute = dynamodb.AttributeValue{}
 	var timeGoingOutStatusWasSetAttribute = dynamodb.AttributeValue{}
@@ -115,6 +120,8 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	expressionValues["partyHostFor"] = &partyHostForAttributeValue
 	expressionValues["peopleBlockingTheirActivityFromMe"] = &peopleBlockingTheirActivityFromMeAttributeValue
 	expressionValues["peopleToIgnore"] = &peopleToIgnoreAttributeValue
+	expressionValues["sevenPMLocalHourInZulu"] = &sevenPMLocalHourInZuluAttributeValue
+	expressionValues["numberOfFriendsThatMightGoOut"] = &numberOfFriendsThatMightGoOutAttributeValue
 	expressionValues["status"] = &goingOutStatusAttributeValue
 
 	var putItemInput = dynamodb.PutItemInput{}
@@ -137,7 +144,7 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	return queryResult
 }
 
-func updatePersonHelper(facebookID string, isMale bool, name string, platform string, deviceToken string) QueryResult {
+func updatePersonHelper(facebookID string, isMale bool, name string, platform string, deviceToken string, sevenPMLocalHourInZulu string) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -160,24 +167,29 @@ func updatePersonHelper(facebookID string, isMale bool, name string, platform st
 	var nameString = "name"
 	var platformString = "platform"
 	var deviceTokenString = "deviceToken"
+	var sevenPMLocalHourInZuluString = "sevenPMLocalHourInZulu"
 	expressionAttributeNames["#isMale"] = &isMaleString
 	expressionAttributeNames["#name"] = &nameString
 	expressionAttributeNames["#platform"] = &platformString
 	expressionAttributeNames["#deviceToken"] = &deviceTokenString
+	expressionAttributeNames["#sevenPMLocalHourInZulu"] = &sevenPMLocalHourInZuluString
 
 	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
 	var isMaleAttributeValue = dynamodb.AttributeValue{}
 	var nameAttributeValue = dynamodb.AttributeValue{}
 	var platformAttributeValue = dynamodb.AttributeValue{}
 	var deviceTokenAttributeValue = dynamodb.AttributeValue{}
+	var sevenPMLocalHourInZuluAttributeValue = dynamodb.AttributeValue{}
 	isMaleAttributeValue.SetBOOL(isMale)
 	nameAttributeValue.SetS(name)
 	platformAttributeValue.SetS(platform)
 	deviceTokenAttributeValue.SetS(deviceToken)
+	sevenPMLocalHourInZuluAttributeValue.SetN(sevenPMLocalHourInZulu)
 	expressionValuePlaceholders[":isMale"] = &isMaleAttributeValue
 	expressionValuePlaceholders[":name"] = &nameAttributeValue
 	expressionValuePlaceholders[":platform"] = &platformAttributeValue
 	expressionValuePlaceholders[":deviceToken"] = &deviceTokenAttributeValue
+	expressionValuePlaceholders[":sevenPMLocalHourInZulu"] = &sevenPMLocalHourInZuluAttributeValue
 
 	keyMap := make(map[string]*dynamodb.AttributeValue)
 	var key = dynamodb.AttributeValue{}
@@ -189,7 +201,7 @@ func updatePersonHelper(facebookID string, isMale bool, name string, platform st
 	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
 	updateItemInput.SetKey(keyMap)
 	updateItemInput.SetTableName("Person")
-	updateExpression := "SET #isMale=:isMale, #name=:name, #platform=:platform, #deviceToken=:deviceToken"
+	updateExpression := "SET #isMale=:isMale, #name=:name, #platform=:platform, #deviceToken=:deviceToken, #sevenPMLocalHourInZulu=:sevenPMLocalHourInZulu"
 	updateItemInput.UpdateExpression = &updateExpression
 
 	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)

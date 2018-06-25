@@ -96,6 +96,8 @@ type PersonData struct {
 	Status                            map[string]string `json:"status"`
 	Platform                          string            `json:"platform"`
 	DeviceToken                       string            `json:"deviceToken"`
+	SevenPMLocalHourInZulu            uint64            `json:"sevenPMLocalHourInZulu"`
+	NumberOfFriendsThatMightGoOut     uint64            `json:"numberOfFriendsThatMightGoOut"`
 }
 
 // PartyData : A party from the database in json format

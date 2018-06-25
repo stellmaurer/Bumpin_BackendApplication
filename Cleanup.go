@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -22,6 +23,164 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
+
+func clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight(w http.ResponseWriter, r *http.Request) {
+	queryResult, people := findAllPeopleThatNeedTheirNumberOfFriendsThatMightGoOutCleared()
+	if queryResult.Succeeded == true {
+		for i := 0; i < len(people); i++ {
+			var clearNumberOfFriendsThatMightGoOutForThisPersonQueryResult = clearNumberOfFriendsThatMightGoOutForThisPerson(people[i].FacebookID)
+			if clearNumberOfFriendsThatMightGoOutForThisPersonQueryResult.Succeeded == false {
+				queryResult = convertTwoQueryResultsToOne(queryResult, clearNumberOfFriendsThatMightGoOutForThisPersonQueryResult)
+			}
+		}
+	}
+	if queryResult.Succeeded == true {
+		queryResult.DynamodbCalls = nil
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func clearNumberOfFriendsThatMightGoOutForThisPerson(facebookID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "clearNumberOfFriendsThatMightGoOutForThisPerson function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var numberOfFriendsThatMightGoOutString = "numberOfFriendsThatMightGoOut"
+	expressionAttributeNames["#numberOfFriendsThatMightGoOut"] = &numberOfFriendsThatMightGoOutString
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var zeroAttributeValue = dynamodb.AttributeValue{}
+	zeroAttributeValue.SetN("0")
+	expressionValuePlaceholders[":zero"] = &zeroAttributeValue
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetS(facebookID)
+	keyMap["facebookID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Person")
+	updateExpression := "SET #numberOfFriendsThatMightGoOut=:zero"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "clearNumberOfFriendsThatMightGoOutForThisPerson function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func findAllPeopleThatNeedTheirNumberOfFriendsThatMightGoOutCleared() (QueryResult, []PersonID) {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "findAllPeopleThatNeedTheirNumberOfFriendsThatMightGoOutCleared function: session creation error. " + err.Error()
+		return queryResult, nil
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+
+	currentTimeInZulu := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+	zuluHourOfCurrentTimeString := currentTimeInZulu[11:13]
+
+	// 0 = 7 PM
+	// 5 = Midnight
+	// 0 = current - 5 => local time is midnight
+	zuluHourOfCurrentTime, _ := strconv.Atoi(zuluHourOfCurrentTimeString)
+	currentZuluHourMinusFive := zuluHourOfCurrentTime - 5
+	if currentZuluHourMinusFive < 0 {
+		currentZuluHourMinusFive = currentZuluHourMinusFive + 24
+	}
+	currentZuluHourMinusFiveString := strconv.Itoa(currentZuluHourMinusFive)
+
+	var people []PersonID
+	firstCall := true
+	var lastEvaluatedKey map[string]*dynamodb.AttributeValue
+
+	for {
+		var scanItemsInput = dynamodb.ScanInput{}
+		scanItemsInput.SetTableName("Person")
+		if firstCall == false && lastEvaluatedKey == nil {
+			break
+		} else {
+			scanItemsInput.SetExclusiveStartKey(lastEvaluatedKey)
+		}
+
+		expressionAttributeNames := make(map[string]*string)
+		var sevenPMLocalHourInZuluString = "sevenPMLocalHourInZulu"
+		expressionAttributeNames["#sevenPMLocalHourInZulu"] = &sevenPMLocalHourInZuluString
+
+		expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+		currentZuluHourMinusFiveAttributeValue := dynamodb.AttributeValue{}
+		currentZuluHourMinusFiveAttributeValue.SetN(currentZuluHourMinusFiveString)
+		expressionValuePlaceholders[":currentZuluHourMinusFive"] = &currentZuluHourMinusFiveAttributeValue
+		scanItemsInput.SetTableName("Person")
+		scanItemsInput.SetExpressionAttributeNames(expressionAttributeNames)
+		scanItemsInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+		// sevenPMLocalHourInZulu = currentHourInZulu - 5 => checks to see if local time is midnight
+		scanItemsInput.SetFilterExpression("#sevenPMLocalHourInZulu = :currentZuluHourMinusFive")
+		scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
+
+		var dynamodbCall = DynamodbCall{}
+		if err2 != nil {
+			dynamodbCall.Error = "findAllPeopleThatNeedTheirNumberOfFriendsThatMightGoOutCleared function: Scan error. " + err2.Error()
+			dynamodbCall.Succeeded = false
+			queryResult.DynamodbCalls[0] = dynamodbCall
+			queryResult.Error += dynamodbCall.Error
+			return queryResult, nil
+		}
+		dynamodbCall.Succeeded = true
+		queryResult.DynamodbCalls[0] = dynamodbCall
+
+		data := scanItemsOutput.Items
+		peopleOnThisPage := make([]PersonID, len(data))
+		jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &peopleOnThisPage)
+		if jsonErr != nil {
+			queryResult.Error = "findAllPeopleThatNeedTheirNumberOfFriendsThatMightGoOutCleared function: UnmarshalListOfMaps error. " + jsonErr.Error()
+			return queryResult, nil
+		}
+		people = append(people, peopleOnThisPage...)
+		lastEvaluatedKey = scanItemsOutput.LastEvaluatedKey
+		firstCall = false
+	}
+
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult, people
+}
 
 /*
 // This map maps each time zone to the Zulu time hour that it's bar attendee
@@ -192,6 +351,11 @@ type PartyID struct {
 // BarID : a barID
 type BarID struct {
 	BarID string `json:"barID"`
+}
+
+// PersonID : a person's facebookID
+type PersonID struct {
+	FacebookID string `json:"facebookID"`
 }
 
 // Starts the bars that recently closed with a new fresh attendee list.

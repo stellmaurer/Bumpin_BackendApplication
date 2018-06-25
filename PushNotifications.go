@@ -32,6 +32,108 @@ const (
 	serverKey = "AAAAo_YT2fc:APA91bEV1ctVnAhvWzO7uOpuMBcHpwYu1LaGDgHF3KZ4GtdY1yocH90Vc_fvFlmtGDKib1vYA24ci5QUdaoozpeI_kfd9QdHwGS2L8JNDd6AZh1I-zGZ8COLEPp75c_wlAG_iFE1NbIZ"
 )
 
+func sendGoingOutStatusNotificationToPeopleWhoHaveFriendsGoingOutAndHaveALocalTimeEqualToSevenPM(w http.ResponseWriter, r *http.Request) {
+	queryResult, people := findAllPeopleWhereTheirLocalTimeIsSevenPM()
+
+	for i := 0; i < len(people); i++ {
+		if people[i].NumberOfFriendsThatMightGoOut > 0 {
+			var message = strconv.FormatUint(people[i].NumberOfFriendsThatMightGoOut, 10) + " of your friends might go out tonight."
+			var createAndSendNotificationToThisPersonQueryResult = createAndSendNotificationToThisPerson(people[i].FacebookID, message, "-1")
+			if createAndSendNotificationToThisPersonQueryResult.Succeeded == false {
+				queryResult = convertTwoQueryResultsToOne(queryResult, createAndSendNotificationToThisPersonQueryResult)
+			}
+		}
+	}
+
+	if queryResult.Succeeded == true {
+		queryResult.DynamodbCalls = nil
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func findAllPeopleWhereTheirLocalTimeIsSevenPM() (QueryResult, []TinyPerson) {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "findAllPeopleWhereTheirLocalTimeIsSevenPM function: session creation error. " + err.Error()
+		return queryResult, nil
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+
+	currentTimeInZulu := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+	zuluHourOfCurrentTimeString := currentTimeInZulu[11:13]
+
+	var people []TinyPerson
+	firstCall := true
+	var lastEvaluatedKey map[string]*dynamodb.AttributeValue
+
+	for {
+		var scanItemsInput = dynamodb.ScanInput{}
+		scanItemsInput.SetTableName("Person")
+		if firstCall == false && lastEvaluatedKey == nil {
+			break
+		} else {
+			scanItemsInput.SetExclusiveStartKey(lastEvaluatedKey)
+		}
+
+		expressionAttributeNames := make(map[string]*string)
+		var sevenPMLocalHourInZuluString = "sevenPMLocalHourInZulu"
+		expressionAttributeNames["#sevenPMLocalHourInZulu"] = &sevenPMLocalHourInZuluString
+
+		expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+		zuluHourOfCurrentTimeAttributeValue := dynamodb.AttributeValue{}
+		zuluHourOfCurrentTimeAttributeValue.SetN(zuluHourOfCurrentTimeString)
+		expressionValuePlaceholders[":zuluHourOfCurrentTime"] = &zuluHourOfCurrentTimeAttributeValue
+		scanItemsInput.SetTableName("Person")
+		scanItemsInput.SetExpressionAttributeNames(expressionAttributeNames)
+		scanItemsInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+		scanItemsInput.SetFilterExpression("#sevenPMLocalHourInZulu = :zuluHourOfCurrentTime")
+		scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
+
+		var dynamodbCall = DynamodbCall{}
+		if err2 != nil {
+			dynamodbCall.Error = "findAllPeopleWhereTheirLocalTimeIsSevenPM function: Scan error. " + err2.Error()
+			dynamodbCall.Succeeded = false
+			queryResult.DynamodbCalls[0] = dynamodbCall
+			queryResult.Error += dynamodbCall.Error
+			return queryResult, nil
+		}
+		dynamodbCall.Succeeded = true
+		queryResult.DynamodbCalls[0] = dynamodbCall
+
+		data := scanItemsOutput.Items
+		peopleOnThisPage := make([]TinyPerson, len(data))
+		jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &peopleOnThisPage)
+		if jsonErr != nil {
+			queryResult.Error = "findAllPeopleWhereTheirLocalTimeIsSevenPM function: UnmarshalListOfMaps error. " + jsonErr.Error()
+			return queryResult, nil
+		}
+		people = append(people, peopleOnThisPage...)
+		lastEvaluatedKey = scanItemsOutput.LastEvaluatedKey
+		firstCall = false
+	}
+
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult, people
+}
+
+// TinyPerson : less info than a normal person object to conserve resources
+type TinyPerson struct {
+	FacebookID                    string `json:"facebookID"`
+	NumberOfFriendsThatMightGoOut uint64 `json:"numberOfFriendsThatMightGoOut"`
+}
+
 func clearOutstandingNotificationCountForPerson(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	facebookID := r.Form.Get("facebookID")
@@ -204,6 +306,54 @@ func testCreateAndSendNotificationsToThesePeople(w http.ResponseWriter, r *http.
 	queryResult := createAndSendNotificationsToThesePeople(people, "This is testing the createAndSendNotifications function.", "9999")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
+}
+
+func createAndSendNotificationToThisPerson(facebookID string, message string, partyOrBarID string) QueryResult {
+	var queryResult = QueryResult{}
+	dynamodbCalls := make([]DynamodbCall, 0)
+
+	var intermediateQueryResult QueryResult
+	// update person's number of outstanding push notifications before we send
+	//		the push notification payload so that we send the correct badger number
+	intermediateQueryResult = QueryResult{}
+	intermediateQueryResult.Succeeded = true
+	intermediateQueryResult = incrementOutstandingNotificationCountForPersonHelper(facebookID)
+	if intermediateQueryResult.Succeeded == false {
+		dynamodbCalls = append(dynamodbCalls, DynamodbCall{Succeeded: false, Error: intermediateQueryResult.Error})
+	}
+
+	queryResult = getPersonHelper(facebookID)
+	if queryResult.Succeeded == false {
+		return queryResult
+	}
+	person := queryResult.People[0]
+	intermediateQueryResult = QueryResult{}
+	intermediateQueryResult.Succeeded = true
+	// (Step 1) Send Push Notification
+	if person.Platform != "Unknown" && person.DeviceToken != "Unknown" {
+		if person.Platform == "iOS" {
+			intermediateQueryResult = sendiOSPushNotification(person.DeviceToken, person.OutstandingNotifications, message, partyOrBarID)
+		}
+		if person.Platform == "Android" {
+			intermediateQueryResult = sendAndroidPushNotification(person.DeviceToken, message, partyOrBarID)
+		}
+	}
+	if intermediateQueryResult.Succeeded == false {
+		dynamodbCalls = append(dynamodbCalls, DynamodbCall{Succeeded: false, Error: intermediateQueryResult.Error})
+	}
+
+	// (Step 2) Creating Notification in our dynamoDB so that user can see a history of their notifications
+	intermediateQueryResult = createNotification(person.FacebookID, message, partyOrBarID)
+	if intermediateQueryResult.Succeeded == false {
+		dynamodbCalls = append(dynamodbCalls, DynamodbCall{Succeeded: false, Error: intermediateQueryResult.Error})
+	}
+
+	queryResult.People = nil
+	queryResult.DynamodbCalls = nil
+	if len(dynamodbCalls) > 0 {
+		queryResult.DynamodbCalls = dynamodbCalls
+	}
+	return queryResult
 }
 
 func createAndSendNotificationsToThesePeople(facebookIDs []string, message string, partyOrBarID string) QueryResult {
