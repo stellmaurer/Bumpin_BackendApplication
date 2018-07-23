@@ -17,7 +17,7 @@ func main() {
 	/*
 		Daily notifications
 	*/
-	// curl http://localhost:5000/sendGoingOutStatusNotificationToPeopleWhoHaveFriendsGoingOutAndHaveALocalTimeEqualToSevenPM
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/sendGoingOutStatusNotificationToPeopleWhoHaveFriendsGoingOutAndHaveALocalTimeEqualToSevenPM
 	go http.HandleFunc("/sendGoingOutStatusNotificationToPeopleWhoHaveFriendsGoingOutAndHaveALocalTimeEqualToSevenPM", sendGoingOutStatusNotificationToPeopleWhoHaveFriendsGoingOutAndHaveALocalTimeEqualToSevenPM)
 
 	/*
@@ -73,7 +73,7 @@ func main() {
 	/*
 		Cleanup of numberOfFriendsThatMightGoOut in Person table
 	*/
-	// curl http://localhost:5000/clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight
 	go http.HandleFunc("/clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight", clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight)
 
 	/*
@@ -131,6 +131,10 @@ func main() {
 	go http.HandleFunc("/rateParty", rateParty)
 	// curl http://localhost:5000/rateBar -d "barID=4454693418154387750&facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer&rating=Weak&status=Going&timeLastRated=2017-03-04T01:25:00Z&timeOfLastKnownLocation=2017-03-04T01:00:00Z"
 	go http.HandleFunc("/rateBar", rateBar)
+	// curl http://localhost:5000/clearRatingForParty -d "partyID=3005619273277206682&facebookID=10155613117039816&timeLastRated=2017-03-04T00:57:00Z&timeOfLastKnownLocation=2017-03-04T00:00:00Z"
+	go http.HandleFunc("/clearRatingForParty", clearRatingForParty)
+	// curl http://localhost:5000/clearRatingForBar -d "barID=4454693418154387750&facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer&status=Going&timeLastRated=2017-03-04T01:25:00Z&timeOfLastKnownLocation=2017-03-04T01:00:00Z"
+	go http.HandleFunc("/clearRatingForBar", clearRatingForBar)
 
 	/*
 		Host tab queries
