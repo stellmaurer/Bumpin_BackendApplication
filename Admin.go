@@ -21,6 +21,60 @@ import (
 )
 
 // Create a bar key for a bar owner
+func createClaimKeyForBar(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	barID := r.Form.Get("barID")
+	queryResult := createClaimKeyForBarHelper(barID)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func createClaimKeyForBarHelper(barID string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "createClaimKeyForBar function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionValues := make(map[string]*dynamodb.AttributeValue)
+	var claimKeyAttributeValue = dynamodb.AttributeValue{}
+	var barIDAttributeValue = dynamodb.AttributeValue{}
+	var key = getRandomBarKey()
+	claimKeyAttributeValue.SetS(key)
+	barIDAttributeValue.SetS(barID)
+	expressionValues["key"] = &claimKeyAttributeValue
+	expressionValues["barID"] = &barIDAttributeValue
+
+	var putItemInput = dynamodb.PutItemInput{}
+	putItemInput.SetTableName("BarKey")
+	putItemInput.SetItem(expressionValues)
+	_, err2 := getter.DynamoDB.PutItem(&putItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "createClaimKeyForBar function: PutItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Error = key
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+// Create a bar key for a bar owner
 func createBarKeyForAddress(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	address := r.Form.Get("address")

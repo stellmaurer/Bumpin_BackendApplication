@@ -690,7 +690,7 @@ func testSendiOSPushNotification(w http.ResponseWriter, r *http.Request) {
 }
 
 func testSendAndroidPushNotification(w http.ResponseWriter, r *http.Request) {
-	queryResult := sendAndroidPushNotification("eEpRROIRD44:APA91bGxfaDudOSpNvggPsw-Q-DpjNtgXzh9CRFTGMKb38hDlfVscvPwcKSqMmb06Bg2vDBQgMcqpGHjE5i_l8UnlzPBVwp2_gyB0TabsU8Rc0n1KG9B4kVAk-Rbl-aoL04COhiL5pCZ", "This is a message!", "000111")
+	queryResult := sendAndroidPushNotification("d8ueLVJ2Et0:APA91bF6RtEWZx0lnm63Q74cUTAkZbhSxreX8laylRvUh8qB4F8mSq7Gu2mmkflBOuur6JPoBKH9LnUvplVwtdtFi0fm7N3DNKVFBJV5geJsoeKZL1qHoDtmnhf0MmxopMw4j0bWsjfr455T5MiWb26ue-LBZmG5Mg", "This is a message!", "000111")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
 }

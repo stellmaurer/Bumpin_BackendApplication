@@ -26,11 +26,11 @@ func main() {
 	// curl http://localhost:5000/testiOSPushNotification
 	// go http.HandleFunc("/testiOSPushNotification", testiOSPushNotification)
 	// curl http://localhost:5000/testAndroidPushNotification
-	// go http.HandleFunc("/testAndroidPushNotification", testAndroidPushNotification)
+	//go http.HandleFunc("/testAndroidPushNotification", testAndroidPushNotification)
 	// curl http://localhost:5000/testSendiOSPushNotification -d "deviceToken=fd21a7d4f1da491ab1b8e817fbd5fe602264ae9a5f9ce27780c8104c132bd891"
 	go http.HandleFunc("/testSendiOSPushNotification", testSendiOSPushNotification)
 	// curl http://localhost:5000/testSendAndroidPushNotification
-	// go http.HandleFunc("/testSendAndroidPushNotification", testSendAndroidPushNotification)
+	go http.HandleFunc("/testSendAndroidPushNotification", testSendAndroidPushNotification)
 	// curl http://localhost:5000/testCreateNotification -d "receiverFacebookID=10154326505409816&message=Hello&partyOrBarID=1"
 	// go http.HandleFunc("/testCreateNotification", testCreateNotification)
 	// curl http://localhost:5000/testGetPeople
@@ -149,6 +149,8 @@ func main() {
 	// curl http://localhost:5000/createBar -d "barKey=UgOMLPkCYUZ1fbfe&facebookID=09876&isMale=false&nameOfCreator=Susan%20Ellmaurer&address=100%20N%20Los%20Angeles%20Rd%20Los%20Angeles%20CA%2099031&attendeesMapCleanUpHourInZulu=20&details=A%20bar%20for%20moms.&latitude=18&longitude=-129&name=Women&phoneNumber=608-114-2323&timeZone=6&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
 	// curl http://localhost:5000/createBar -d "barKey=0r5qcj3UQHF2elJz&facebookID=111961819566368&isMale=true&nameOfCreator=Will%20Greenart&address=305%20N%20Midvale%20Blvd%20Apt%20D%20Madison%20WI&attendeesMapCleanUpHourInZulu=20&details=A%20bar%20for%20moms.&latitude=43.070011&longitude=-89.450809&name=Madtown%20Moms&phoneNumber=608-114-2323&timeZone=6&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM&hostListFacebookIDs=122107341882417,115693492525474&hostListNames=Lisa%20Chengberg,Linda%20Qinstein"
 	go http.HandleFunc("/createBar", createBar)
+	// curl http://localhost:5000/claimBar -d "claimKey=FvIUBYWbH6rNd4bt&facebookID=10154326505409816&isMale=true&nameOfCreator=Steve%20Ellmaurer"
+	go http.HandleFunc("/claimBar", claimBar)
 	// curl http://localhost:5000/deleteParty -d "partyID=5233516922553495941"
 	go http.HandleFunc("/deleteParty", deleteParty)
 	// curl http://localhost:5000/deleteBar -d "barID=2629732187453375056"
@@ -239,9 +241,13 @@ func main() {
 	// curl http://localhost:5000/createBarKeyForAddress
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBarKeyForAddress -d "address=305%20N%20Midvale%20Blvd%20Apt%20D%20Madison%20WI"
 	go http.HandleFunc("/createBarKeyForAddress", createBarKeyForAddress)
+	// curl http://localhost:5000/createClaimKeyForBar -d "barID=991135472298699438"
+	go http.HandleFunc("/createClaimKeyForBar", createClaimKeyForBar)
 	// curl http://localhost:5000/getBarKey -d "key="
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getBarKey -d "key=0yweLNBFuooCgvQD"
 	go http.HandleFunc("/getBarKey", getBarKey)
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getClaimKey -d "key=0yweLNBFuooCgvQD"
+	go http.HandleFunc("/getClaimKey", getClaimKey)
 	// curl http://localhost:5000/deleteBarKey -d "key="
 	go http.HandleFunc("/deleteBarKey", deleteBarKey)
 	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=43.074470&longitude=-89.394521&radius=10000"

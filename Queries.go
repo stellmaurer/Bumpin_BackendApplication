@@ -204,6 +204,7 @@ type Attendee struct {
 type BarKey struct {
 	Key     string `json:"key"`
 	Address string `json:"address"`
+	BarID   string `json:"barID"`
 }
 
 // QueryResult : The result of a query in json format
