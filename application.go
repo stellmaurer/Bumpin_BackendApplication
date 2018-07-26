@@ -241,7 +241,7 @@ func main() {
 	// curl http://localhost:5000/createBarKeyForAddress
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBarKeyForAddress -d "address=305%20N%20Midvale%20Blvd%20Apt%20D%20Madison%20WI"
 	go http.HandleFunc("/createBarKeyForAddress", createBarKeyForAddress)
-	// curl http://localhost:5000/createClaimKeyForBar -d "barID=991135472298699438"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createClaimKeyForBar -d "barID=16190630402960856425"
 	go http.HandleFunc("/createClaimKeyForBar", createClaimKeyForBar)
 	// curl http://localhost:5000/getBarKey -d "key="
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getBarKey -d "key=0yweLNBFuooCgvQD"
@@ -250,95 +250,12 @@ func main() {
 	go http.HandleFunc("/getClaimKey", getClaimKey)
 	// curl http://localhost:5000/deleteBarKey -d "key="
 	go http.HandleFunc("/deleteBarKey", deleteBarKey)
-	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=43.074470&longitude=-89.394521&radius=10000"
-	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=43.056766&longitude=-87.894606&radius=10000"
+	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=43.070963&longitude=-89.396784&radius=200&squareMiles=2"
 	go http.HandleFunc("/populateBarsFromGooglePlacesAPI", populateBarsFromGooglePlacesAPI)
 	// curl "http://localhost:5000/checkForBarDuplicates"
 	go http.HandleFunc("/checkForBarDuplicates", checkForBarDuplicates)
+	// curl "http://localhost:5000/deleteAllBarsThatWereAutoPopulated"
+	go http.HandleFunc("/deleteAllBarsThatWereAutoPopulated", deleteAllBarsThatWereAutoPopulated)
 
-	//curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteBarKey -d "key=utugUFU8rHdSVTdr"
-	//curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/myParties?partyIDs=1,2"
 	http.ListenAndServe(":5000", nil)
-
-	/*
-		Creates a fraternity party in Rochester, New York
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=1222222&isMale=false&name=Eva%20Catarina&address=Wilson%20Blvd%20Alpha%20Delta%20Phi%20Fraternity%20Rochester%20New%20York%2014627&drinksProvided=true&endTime=2017-05-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.128793&longitude=-77.632627&startTime=2017-05-25T00:00:00Z&title=Grad%20Party"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/inviteFriendToParty -d "partyID=3581107088474971827&myFacebookID=1222222&isHost=true&numberOfInvitesToGive=1&friendFacebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
-
-		Creates a fraternity party in Madison, WI
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=010101&isMale=true&name=Gerrard%20Holler&address=210%20Langdon%20St%20Madison%20WI%2053703&drinksProvided=true&endTime=2017-06-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.076698&longitude=-89.393055&startTime=2017-06-25T00:00:00Z&title=Summer%20Shenanigans"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/inviteFriendToParty -d "partyID=10583166241324703384&myFacebookID=010101&isHost=true&numberOfInvitesToGive=1&friendFacebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
-	*/
-
-	/*
-
-
-		Demo:
-
-		Susan creates a surprise party for my sister's birthday:
-			curl http://localhost:5000/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&address=550%20W%20Main%20St%20Madison%20WI%2053703&drinksProvided=true&endTime=2017-04-08T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=43.068284&longitude=-89.391325&startTime=2017-04-08T22:00:00Z&title=Lisa's%20Birthday"
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&address=550%20W%20Main%20St%20Madison%20WI%2053703&drinksProvided=true&endTime=2017-09-25T04:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.068284&longitude=-89.391325&startTime=2017-09-25T00:00Z&title=Lisa's%20Birthday"
-
-		******** Find the party ID and update all these next calls with it:
-
-		Susan want's me to be able to edit the party and invite people so she asks me to host the party with her:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/askFriendToHostPartyWithYou -d "partyID=3005619273277206682&friendFacebookID=10155613117039816&name=Steve%20Ellmaurer"
-		I accept the invitation to host the party with her:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/acceptInvitationToHostParty -d "partyID=3005619273277206682&facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer"
-		******** I automatically get invited when I accept the invitation to host the party
-
-		I invite my friend Sarah Carlson to the party and I give her one invitation so that she can bring a friend:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/inviteFriendToParty -d "partyID=3005619273277206682&myFacebookID=10155613117039816&isHost=true&numberOfInvitesToGive=1&friendFacebookID=12345699033&isMale=false&name=Sarah%20Carlson"
-		Susan removes me as a host because I was inviting too many people:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/removePartyHost -d "partyID=3005619273277206682&facebookID=10155613117039816"
-		Susan uninvites me from the party because I made her mad:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=3005619273277206682&removalsListFacebookID=10155613117039816"
-		After I apologize to her for making her mad and beg her to re-invite me, she decides to invite me again:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=3005619273277206682&numberOfInvitesToGive=5&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
-		Susan then realizes that she forgot to set my invitations to zero, so she updates that now so that I can't invite anyone:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/setNumberOfInvitationsLeftForInvitees -d "partyID=3005619273277206682&invitees=10155613117039816&invitationsLeft=0"
-		After the expected attendance rises too much, Susan realizes she'll need to move the party to her place, so she updates the party details with the new address and while she's at it, she changes the name to mention it will be a surprise.
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateParty -d "partyID=3005619273277206682&address=6150%20Century%20Ave%20Apt%20109%20Madison%20WI%2053703&details=Meet%20us%20out%20back.&drinksProvided=true&endTime=2017-09-25T04:00:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.106061&longitude=-89.485127&startTime=2017-09-25T00:00:00Z&title=Lisa's%20Surprise%20B-day"
-		The party comes around and it's AWESOME, so I decide to rate it Bumpin.
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=3005619273277206682&facebookID=10155613117039816&rating=Bumpin&timeLastRated=2017-05-25T02:00:00Z&timeOfLastKnownLocation=2017-03-04T00:00:00Z"
-
-		******** The rest of the night is wonderful, but it goes by quick and now the party is finished.
-		******** The cleanup of finished parties is actually done automatically everday at noon central time,
-							but Susan decides to delete the party manually.
-		Delete the party:
-			curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteParty -d "partyID=3005619273277206682"
-
-
-	*/
-
-	/*
-		Testing:
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=09876&isMale=false&name=Susan%20Ellmaurer&address=550%20W%20Main%20St%20Madison%20WI%2053703&drinksProvided=true&endTime=2017-09-25T04:00Z&feeForDrinks=false&invitesForNewInvitees=5&latitude=43.068284&longitude=-89.391325&startTime=2017-09-25T00:00Z&title=Lisa's%20Birthday"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=000037&isMale=true&name=Zander%20Blah&address=415%20E%20Bradley%20Rd%20Fox%20Point%20WI%2053217&drinksProvided=true&endTime=2017-12-03T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=4&latitude=43.161847&longitude=-87.903058&startTime=2017-12-02T22:00:00Z&title=Badger%20Bash"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=3005619273277206682&numberOfInvitesToGive=5&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=5349936383849162678&numberOfInvitesToGive=5&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=wJrbyX10zuGs5KVS&facebookID=5201&isMale=true&nameOfCreator=Zak%20Shires&address=620%20University%20Ave%20Madison%20WI%2053715&attendeesMapCleanUpHourInZulu=11&details=A%20bar%20for%20people%20who%20Lift.&latitude=43.073400&longitude=-89.396818&name=CrossBar&phoneNumber=608-455-4308&timeZone=5&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
-
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=7742229197&isMale=true&name=Steinbach%20Fickerbench&address=1221%20W%20Johnson%20St%20Madison%20WI%2053715&drinksProvided=false&endTime=2017-12-05T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=2&latitude=43.072061&longitude=-89.407003&startTime=2017-12-05T22:00:00Z&title=Cops%20&%20Robbers"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=12227493442563884470&numberOfInvitesToGive=2&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
-
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=&facebookID=7742229197&isMale=true&nameOfCreator=Steinbach%20Fickerbench&address=1220%20W%20Johnson%20St%20Madison%20WI%2053715&attendeesMapCleanUpHourInZulu=11&details=Dance%20until%204AM.%20Every%20night.&latitude=43.072488&longitude=-89.408685&name=Dance&phoneNumber=608- 819-8881&timeZone=5&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
-
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBar -d "barKey=hhQb5U9MIjsPD6aF&facebookID=5201&isMale=true&nameOfCreator=Zak%20Shires&address=522%20State%20St%20Madison%20WI%2053703&attendeesMapCleanUpHourInZulu=11&details=Dance%20until%204AM.%20Every%20night.&latitude=43.074958&longitude=-89.394084&name=Whiskey%20Jacks&phoneNumber=608-414-4322&timeZone=5&Mon=4PM-2AM,1:45AM&Tue=4PM-2AM,1:45AM&Wed=4PM-2AM,1:45AM&Thu=2PM-2:30AM,2:00AM&Fri=10AM-3AM,2:30AM&Sat=8AM-3AM,2:30AM&Sun=8AM-1AM,12:45AM"
-
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=7742229197&isMale=true&name=Steinbach%20Fickerbench&address=1025%20Regent%20St%20Madison%20WI%2053715&drinksProvided=false&endTime=2017-10-01T08:00:00Z&feeForDrinks=false&invitesForNewInvitees=2&latitude=43.067294&longitude=-89.403622&startTime=2017-10-01T04:59:00Z&title=Party%20is%202Nite"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=11748375611757413059&numberOfInvitesToGive=2&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
-
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=7742229197&isMale=true&name=Steinbach%20Fickerbench&address=835%20W%20Dayton%20St%20Madison%20WI%2053706&drinksProvided=false&endTime=2017-10-07T08:00:00Z&feeForDrinks=false&invitesForNewInvitees=2&latitude=43.070719&longitude=-89.400224&startTime=2017-10-07T04:59:00Z&title=Less%20Than%20Week%20Out"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=9639539105192070833&numberOfInvitesToGive=2&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
-
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createParty -d "facebookID=7742229197&isMale=true&name=Steinbach%20Fickerbench&address=48%20N%20Randall%20Ave%20Madison%20WI%2053715&drinksProvided=false&endTime=2017-10-01T08:00:00Z&feeForDrinks=false&invitesForNewInvitees=2&latitude=43.069245&longitude=-89.409665&startTime=2017-10-01T04:59:00Z&title=Party%20is%20tonight%20Out"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/updateInvitationsListAsHostForParty -d "partyID=1492478435686619261&numberOfInvitesToGive=2&additionsListFacebookID=10155613117039816&additionsListIsMale=true&additionsListName=Steve%20Ellmaurer"
-		curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteParty -d "partyID=79501990437895163"
-	*/
-
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=12227493442563884470&facebookID=10155613117039816&rating=Heat%27n%20Up&timeLastRated=2017-10-01T22:01:00Z&timeOfLastKnownLocation=2017-10-01T22:21:00Z"
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateParty -d "partyID=12227493442563884470&facebookID=10155613117039816&rating=Heat%27n%20Up&timeLastRated=2017-03-04T00:57:00Z&timeOfLastKnownLocation=2017-03-04T00:00:00Z"
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateBar -d "barID=4454693418154387750&facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer&rating=Weak&status=Going&timeLastRated=2017-03-04T01:25:00Z&timeOfLastKnownLocation=2017-03-04T01:00:00Z"
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/rateBar -d "barID=4454693418154387750&facebookID=10155613117039816&isMale=true&name=Steve%20Ellmaurer&rating=Weak&status=Going&timeLastRated=2017-03-04T01:25:00Z&timeOfLastKnownLocation=2017-03-04T01:00:00Z"
 }

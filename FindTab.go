@@ -24,6 +24,25 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
+func claimBar(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	claimKey := r.Form.Get("claimKey")
+	facebookID := r.Form.Get("facebookID")
+	isMale, isMaleConvErr := strconv.ParseBool(r.Form.Get("isMale"))
+	nameOfCreator := r.Form.Get("nameOfCreator")
+
+	var queryResult = QueryResult{}
+	if isMaleConvErr != nil {
+		queryResult.Error = "claimBar function: isMale parameter issue. " + isMaleConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+
+	queryResult = claimBarHelper(claimKey, facebookID, isMale, nameOfCreator)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
 // Find all of the parties for partyIDs passed in.
 func getParties(w http.ResponseWriter, r *http.Request) {
 	var queryResult = QueryResult{}
@@ -183,6 +202,130 @@ func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(queryResult)
+}
+
+func claimBarHelper(claimKey string, facebookID string, isMale bool, nameOfCreator string) QueryResult {
+	barID := "-1"
+	var queryResult QueryResult
+	if claimKey != "AdminUe28GTttHi3L30Jjd3ILLLAdmin" {
+		queryResult = getClaimKeyHelper(claimKey)
+		if queryResult.Succeeded == false {
+			return queryResult
+		}
+		barID = queryResult.Error
+
+		queryResult = deleteBarKeyHelper(claimKey)
+		if queryResult.Succeeded == false {
+			return queryResult
+		}
+	}
+
+	getBarQueryResult := getBar(barID)
+	if getBarQueryResult.Succeeded == false {
+		return getBarQueryResult
+	}
+	removeHostsQueryResult := removeBarFromBarHostForMapInPersonTableForEveryHostOfTheBar(barID, getBarQueryResult.Bars[0].Hosts)
+	if removeHostsQueryResult.Succeeded == false {
+		return removeHostsQueryResult
+	}
+
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 2)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "claimBarHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var hostsString = "hosts"
+	expressionAttributeNames["#hosts"] = &hostsString
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	hostsMap := make(map[string]*dynamodb.AttributeValue)
+	var hosts = dynamodb.AttributeValue{}
+	hostMap := make(map[string]*dynamodb.AttributeValue)
+	var host = dynamodb.AttributeValue{}
+	var isMainHostAttribute = dynamodb.AttributeValue{}
+	var hostStatusAttribute = dynamodb.AttributeValue{}
+	var nameOfCreatorAttribute = dynamodb.AttributeValue{}
+	isMainHostAttribute.SetBOOL(true)
+	hostStatusAttribute.SetS("Accepted")
+	nameOfCreatorAttribute.SetS(nameOfCreator)
+	hostMap["isMainHost"] = &isMainHostAttribute
+	hostMap["name"] = &nameOfCreatorAttribute
+	hostMap["status"] = &hostStatusAttribute
+	host.SetM(hostMap)
+	hostsMap[facebookID] = &host
+	hosts.SetM(hostsMap)
+	expressionValuePlaceholders[":hosts"] = &hosts
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetS(barID)
+	keyMap["barID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Bar")
+	updateExpression := "SET #hosts=:hosts"
+	updateItemInput.UpdateExpression = &updateExpression
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	queryResult.DynamodbCalls[0] = dynamodbCall
+	if err2 != nil {
+		dynamodbCall.Error = "claimBarHelper function: Problem adding host to Bar: " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
+		return queryResult
+	}
+
+	// Now we need to update the person's information to let them
+	//     know that they are hosting this bar.
+	expressionAttributeNames = make(map[string]*string)
+	barHostFor := "barHostFor"
+	expressionAttributeNames["#barHostFor"] = &barHostFor
+	expressionAttributeNames["#barID"] = &barID
+	expressionValuePlaceholders = make(map[string]*dynamodb.AttributeValue)
+	var barIDBoolAttribute = dynamodb.AttributeValue{}
+	barIDBoolAttribute.SetBOOL(true)
+	expressionValuePlaceholders[":bool"] = &barIDBoolAttribute
+
+	keyMap = make(map[string]*dynamodb.AttributeValue)
+	key.SetS(facebookID)
+	keyMap["facebookID"] = &key
+
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Person")
+	updateExpression = "SET #barHostFor.#barID=:bool"
+	updateItemInput.UpdateExpression = &updateExpression
+	_, updateItemOutputErr := getter.DynamoDB.UpdateItem(&updateItemInput)
+
+	var dynamodbCall2 = DynamodbCall{}
+	if updateItemOutputErr != nil {
+		dynamodbCall2.Error = "claimBarHelper function (updating person's info): UpdateItem error (probable cause: your facebookID isn't in the database). " + updateItemOutputErr.Error()
+		dynamodbCall2.Succeeded = false
+		queryResult.DynamodbCalls[1] = dynamodbCall2
+		queryResult.Error += dynamodbCall2.Error
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
 }
 
 func getPartiesHelper(partyIDs []string) QueryResult {

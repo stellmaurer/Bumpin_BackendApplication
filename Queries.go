@@ -150,6 +150,7 @@ type BarData struct {
 	PhoneNumber                   string                    `json:"phoneNumber"`
 	Schedule                      map[string]ScheduleForDay `json:"schedule"`
 	TimeZone                      uint32                    `json:"timeZone"`
+	GooglePlaceID                 string                    `json:"googlePlaceID"`
 }
 
 // ScheduleForDay : A particular day's schedule
@@ -166,6 +167,7 @@ type GooglePlace struct {
 
 // GooglePlaceDetailed : A google place with more details in json format
 type GooglePlaceDetailed struct {
+	PlaceID      string       `json:"place_id"`
 	Name         string       `json:"name"`
 	Address      string       `json:"formatted_address"`
 	PhoneNumber  string       `json:"formatted_phone_number"`

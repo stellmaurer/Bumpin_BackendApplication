@@ -24,6 +24,83 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
+func deleteAllBarsThatWereAutoPopulated(w http.ResponseWriter, r *http.Request) {
+	queryResult := deleteAllBarsThatWereAutoPopulatedHelper()
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func deleteAllBarsThatWereAutoPopulatedHelper() QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "deleteAllBarsHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+
+	// Finally
+	var bars []BarData
+	firstCall := true
+	var lastEvaluatedKey map[string]*dynamodb.AttributeValue
+
+	for {
+		var scanItemsInput = dynamodb.ScanInput{}
+		scanItemsInput.SetTableName("Bar")
+		if firstCall == false && lastEvaluatedKey == nil {
+			break
+		} else {
+			scanItemsInput.SetExclusiveStartKey(lastEvaluatedKey)
+		}
+
+		scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
+		var dynamodbCall = DynamodbCall{}
+		if err2 != nil {
+			dynamodbCall.Error = "deleteAllBarsHelper function: Scan error. " + err2.Error()
+			dynamodbCall.Succeeded = false
+			queryResult.DynamodbCalls[0] = dynamodbCall
+			queryResult.Error += dynamodbCall.Error
+			return queryResult
+		}
+		dynamodbCall.Succeeded = true
+		queryResult.DynamodbCalls[0] = dynamodbCall
+
+		data := scanItemsOutput.Items
+		barsOnThisPage := make([]BarData, len(data))
+		jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &barsOnThisPage)
+		if jsonErr != nil {
+			queryResult.Error = "barsCloseToMeHelper function: UnmarshalListOfMaps error. " + jsonErr.Error()
+			return queryResult
+		}
+		bars = append(bars, barsOnThisPage...)
+		lastEvaluatedKey = scanItemsOutput.LastEvaluatedKey
+		firstCall = false
+	}
+
+	queryResult.Succeeded = true
+
+	for i := 0; i < len(bars); i++ {
+		_, barCreatorIsOwner := bars[i].Hosts["184484668766597"]
+		if barCreatorIsOwner {
+			var deleteBarQueryResult = deleteBarHelper(bars[i].BarID)
+			if deleteBarQueryResult.Succeeded == false {
+				queryResult = convertTwoQueryResultsToOne(queryResult, deleteBarQueryResult)
+			}
+		}
+	}
+
+	return queryResult
+}
+
 func clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight(w http.ResponseWriter, r *http.Request) {
 	queryResult, people := findAllPeopleThatNeedTheirNumberOfFriendsThatMightGoOutCleared()
 	if queryResult.Succeeded == true {
