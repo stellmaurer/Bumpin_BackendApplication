@@ -27,11 +27,21 @@ import (
 //		string "" since dynamodb doesn't allow empty strings
 const NULL = "null"
 
+func getClaimKey(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	key := r.Form.Get("key")
+	queryResult := getClaimKeyHelper(key)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
 func getBarKey(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	key := r.Form.Get("key")
 	queryResult := getBarKeyHelper(key)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -40,6 +50,7 @@ func deleteBarKey(w http.ResponseWriter, r *http.Request) {
 	key := r.Form.Get("key")
 	queryResult := deleteBarKeyHelper(key)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -92,10 +103,11 @@ func createParty(w http.ResponseWriter, r *http.Request) {
 		queryResult.Error = partyID
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
-// Create a party
+// Create a bar
 func createBar(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	barKey := r.Form.Get("barKey")
@@ -111,6 +123,11 @@ func createBar(w http.ResponseWriter, r *http.Request) {
 	name := r.Form.Get("name")
 	phoneNumber := r.Form.Get("phoneNumber")
 	timeZone := r.Form.Get("timeZone")
+	googlePlaceID := r.Form.Get("googlePlaceID")
+	if googlePlaceID == "" {
+		googlePlaceID = "-1"
+	}
+
 	mon := strings.Split(r.Form.Get("Mon"), ",")
 	tue := strings.Split(r.Form.Get("Tue"), ",")
 	wed := strings.Split(r.Form.Get("Wed"), ",")
@@ -142,7 +159,7 @@ func createBar(w http.ResponseWriter, r *http.Request) {
 	if details == "" {
 		details = NULL
 	}
-	queryResult = createBarHelper(barKey, facebookID, isMale, nameOfCreator, address, attendeesMapCleanUpHourInZulu, barID, details, latitude, longitude, name, phoneNumber, schedule, timeZone)
+	queryResult = createBarHelper(barKey, facebookID, isMale, nameOfCreator, address, attendeesMapCleanUpHourInZulu, barID, details, latitude, longitude, name, phoneNumber, schedule, timeZone, googlePlaceID)
 
 	if queryResult.Succeeded == true {
 		var addHostsQueryResult = askFriendsToHostBarWithYou(r, barID)
@@ -153,6 +170,7 @@ func createBar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -162,6 +180,7 @@ func deleteParty(w http.ResponseWriter, r *http.Request) {
 	partyID := r.Form.Get("partyID")
 	queryResult := deletePartyHelper(partyID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -171,6 +190,7 @@ func deleteBar(w http.ResponseWriter, r *http.Request) {
 	barID := r.Form.Get("barID")
 	queryResult := deleteBarHelper(barID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -213,6 +233,7 @@ func updateParty(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -261,6 +282,7 @@ func updateBar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -280,6 +302,7 @@ func setNumberOfInvitationsLeftForInvitees(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -370,6 +393,7 @@ func removePartyHost(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := removePartyHostHelper(partyID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -380,6 +404,7 @@ func removeBarHost(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := removeBarHostHelper(barID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -399,6 +424,7 @@ func acceptInvitationToHostParty(w http.ResponseWriter, r *http.Request) {
 	}
 	queryResult = acceptInvitationToHostPartyHelper(partyID, facebookID, isMale, name)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -409,6 +435,7 @@ func acceptInvitationToHostBar(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := acceptInvitationToHostBarHelper(barID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -419,6 +446,7 @@ func declineInvitationToHostParty(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := declineInvitationToHostPartyHelper(partyID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -429,6 +457,7 @@ func declineInvitationToHostBar(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := declineInvitationToHostBarHelper(barID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -650,7 +679,59 @@ func getBars(w http.ResponseWriter, r *http.Request) {
 		queryResult = getBarsHelper(barIDs)
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
+}
+
+func getClaimKeyHelper(key string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "getClaimKeyHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	var getItemInput = dynamodb.GetItemInput{}
+	getItemInput.SetTableName("BarKey")
+	var attributeValue = dynamodb.AttributeValue{}
+	attributeValue.SetS(key)
+	getItemInput.SetKey(map[string]*dynamodb.AttributeValue{"key": &attributeValue})
+	getItemOutput, err2 := getter.DynamoDB.GetItem(&getItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "getClaimKeyHelper function: GetItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+
+	data := getItemOutput.Item
+	var barKey BarKey
+	jsonErr := dynamodbattribute.UnmarshalMap(data, &barKey)
+	if jsonErr != nil {
+		queryResult.Error = "getClaimKey function: UnmarshalListOfMaps error. " + jsonErr.Error()
+		return queryResult
+	}
+	queryResult.Succeeded = true
+	if barKey.BarID == "" {
+		queryResult.Succeeded = false
+		queryResult.Error = "The claim key doesn't exist."
+	} else {
+		queryResult.Error = barKey.BarID
+	}
+	return queryResult
 }
 
 func getBarKeyHelper(key string) QueryResult {
@@ -745,7 +826,7 @@ func deleteBarKeyHelper(key string) QueryResult {
 	return queryResult
 }
 
-func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreator string, address string, attendeesMapCleanUpHourInZulu string, barID string, details string, latitude string, longitude string, name string, phoneNumber string, schedule map[string]ScheduleForDay, timeZone string) QueryResult {
+func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreator string, address string, attendeesMapCleanUpHourInZulu string, barID string, details string, latitude string, longitude string, name string, phoneNumber string, schedule map[string]ScheduleForDay, timeZone string, googlePlaceID string) QueryResult {
 	var queryResult QueryResult
 	if barKey != "AdminUe28GTttHi3L30Jjd3ILLLAdmin" {
 		queryResult = getBarKeyHelper(barKey)
@@ -783,6 +864,7 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	var nameAttributeValue = dynamodb.AttributeValue{}
 	var phoneNumberAttributeValue = dynamodb.AttributeValue{}
 	var timeZoneAttributeValue = dynamodb.AttributeValue{}
+	var googlePlaceIDAttributeValue = dynamodb.AttributeValue{}
 	addressAttributeValue.SetS(address)
 	attendeesMapCleanUpHourInZuluAttributeValue.SetN(attendeesMapCleanUpHourInZulu)
 	barIDAttributeValue.SetS(barID)
@@ -792,6 +874,7 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	nameAttributeValue.SetS(name)
 	phoneNumberAttributeValue.SetS(phoneNumber)
 	timeZoneAttributeValue.SetN(timeZone)
+	googlePlaceIDAttributeValue.SetS(googlePlaceID)
 	expressionValues["address"] = &addressAttributeValue
 	expressionValues["attendeesMapCleanUpHourInZulu"] = &attendeesMapCleanUpHourInZuluAttributeValue
 	expressionValues["barID"] = &barIDAttributeValue
@@ -801,6 +884,7 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	expressionValues["name"] = &nameAttributeValue
 	expressionValues["phoneNumber"] = &phoneNumberAttributeValue
 	expressionValues["timeZone"] = &timeZoneAttributeValue
+	expressionValues["googlePlaceID"] = &googlePlaceIDAttributeValue
 
 	// set yourself as an attendee to your own bar so that you can rate it
 	attendeesMap := make(map[string]*dynamodb.AttributeValue)

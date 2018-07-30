@@ -32,15 +32,16 @@ func checkForBarDuplicates(w http.ResponseWriter, r *http.Request) {
 	barsAlreadyInOurDB := getAllBars().Bars
 	barMap := make(map[string]bool)
 	for i := 0; i < len(barsAlreadyInOurDB); i++ {
-		barExistsAlready := barMap[barsAlreadyInOurDB[i].Address+barsAlreadyInOurDB[i].Name]
-		if barExistsAlready == true {
+		barExistsAlready := barMap[barsAlreadyInOurDB[i].GooglePlaceID]
+		if (barExistsAlready == true) && (barsAlreadyInOurDB[i].GooglePlaceID != "-1") {
 			numberOfDuplicates++
 		} else {
-			barMap[barsAlreadyInOurDB[i].Address+barsAlreadyInOurDB[i].Name] = true
+			barMap[barsAlreadyInOurDB[i].GooglePlaceID] = true
 		}
 	}
 	var message = "Number of bar duplicates = " + strconv.Itoa(numberOfDuplicates)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(message)
 }
 
@@ -49,7 +50,7 @@ func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
 	latitudeOfQuery := r.Form.Get("latitude")
 	longitudeOfQuery := r.Form.Get("longitude")
 	radius := r.Form.Get("radius")
-	squareMiles := r.Form.Get("squaremiles")
+	squareMiles := r.Form.Get("squareMiles")
 	timeZone := r.Form.Get("timeZone")
 	attendeesMapCleanUpHourInZulu := r.Form.Get("attendeesMapCleanUpHourInZulu")
 
@@ -62,65 +63,72 @@ func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
 
 	barsDetailed := getBarsFromGooglePlacesAPIWithinThisSquareMileage(latitudeOfQuery, longitudeOfQuery, radius, squareMiles)
 
-	barsAlreadyInOurDB := getAllBars().Bars
-	mapOfBarsAlreadyInOurDB := make(map[string]bool)
+	barsAlreadyInOurDB := getBarsWithinThisSquareMileageFromTheseCoordinates(latitudeOfQuery, longitudeOfQuery, squareMiles).Bars
+	mapOfBarsAlreadyInOurDB := make(map[string]BarData)
 	for i := 0; i < len(barsAlreadyInOurDB); i++ {
-		mapOfBarsAlreadyInOurDB[barsAlreadyInOurDB[i].Address+barsAlreadyInOurDB[i].Name] = true
+		mapOfBarsAlreadyInOurDB[barsAlreadyInOurDB[i].GooglePlaceID] = barsAlreadyInOurDB[i]
 	}
 
 	var queryResult QueryResult
 	queryResult.Succeeded = true
 
 	for i := 0; i < len(barsDetailed); i++ {
-		barExistsAlready := mapOfBarsAlreadyInOurDB[barsDetailed[i].Address+barsDetailed[i].Name]
+		latitude := strconv.FormatFloat(barsDetailed[i].Geometry.Location.Lat, 'f', -1, 64)
+		longitude := strconv.FormatFloat(barsDetailed[i].Geometry.Location.Lng, 'f', -1, 64)
+		var address string
+		if barsDetailed[i].Address == "" {
+			address = "N/A"
+		} else {
+			address = barsDetailed[i].Address
+		}
+		var name string
+		if barsDetailed[i].Name == "" {
+			name = "N/A"
+		} else {
+			name = barsDetailed[i].Name
+		}
+		var phoneNumber string
+		if barsDetailed[i].PhoneNumber == "" {
+			phoneNumber = "N/A"
+		} else {
+			phoneNumber = barsDetailed[i].PhoneNumber
+		}
+		schedule := make(map[string]ScheduleForDay)
+		if len(barsDetailed[i].OpeningHours.Schedule) >= 7 {
+			schedule["Monday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[0], LastCall: lastCall}
+			schedule["Tuesday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[1], LastCall: lastCall}
+			schedule["Wednesday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[2], LastCall: lastCall}
+			schedule["Thursday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[3], LastCall: lastCall}
+			schedule["Friday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[4], LastCall: lastCall}
+			schedule["Saturday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[5], LastCall: lastCall}
+			schedule["Sunday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[6], LastCall: lastCall}
+		} else {
+			schedule["Monday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
+			schedule["Tuesday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
+			schedule["Wednesday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
+			schedule["Thursday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
+			schedule["Friday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
+			schedule["Saturday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
+			schedule["Sunday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
+		}
+
+		existingBar, barExistsAlready := mapOfBarsAlreadyInOurDB[barsDetailed[i].PlaceID]
 		if barExistsAlready == false {
 			barID := strconv.FormatUint(getRandomID(), 10)
-			latitude := strconv.FormatFloat(barsDetailed[i].Geometry.Location.Lat, 'f', -1, 64)
-			longitude := strconv.FormatFloat(barsDetailed[i].Geometry.Location.Lng, 'f', -1, 64)
-			var address string
-			if barsDetailed[i].Address == "" {
-				address = "N/A"
-			} else {
-				address = barsDetailed[i].Address
-			}
-			var name string
-			if barsDetailed[i].Name == "" {
-				name = "N/A"
-			} else {
-				name = barsDetailed[i].Name
-			}
-			var phoneNumber string
-			if barsDetailed[i].PhoneNumber == "" {
-				phoneNumber = "N/A"
-			} else {
-				phoneNumber = barsDetailed[i].PhoneNumber
-			}
-			schedule := make(map[string]ScheduleForDay)
-			if len(barsDetailed[i].OpeningHours.Schedule) >= 7 {
-				schedule["Monday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[0], LastCall: lastCall}
-				schedule["Tuesday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[1], LastCall: lastCall}
-				schedule["Wednesday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[2], LastCall: lastCall}
-				schedule["Thursday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[3], LastCall: lastCall}
-				schedule["Friday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[4], LastCall: lastCall}
-				schedule["Saturday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[5], LastCall: lastCall}
-				schedule["Sunday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[6], LastCall: lastCall}
-			} else {
-				schedule["Monday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
-				schedule["Tuesday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
-				schedule["Wednesday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
-				schedule["Thursday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
-				schedule["Friday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
-				schedule["Saturday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
-				schedule["Sunday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
-			}
-
-			var createBarQueryResult = createBarHelper(barKey, facebookID, isMale, nameOfCreator, address, attendeesMapCleanUpHourInZulu, barID, details, latitude, longitude, name, phoneNumber, schedule, timeZone)
+			var createBarQueryResult = createBarHelper(barKey, facebookID, isMale, nameOfCreator, address, attendeesMapCleanUpHourInZulu, barID, details, latitude, longitude, name, phoneNumber, schedule, timeZone, barsDetailed[i].PlaceID)
 			queryResult = convertTwoQueryResultsToOne(queryResult, createBarQueryResult)
-			mapOfBarsAlreadyInOurDB[barsDetailed[i].Address+barsDetailed[i].Name] = true
+			mapOfBarsAlreadyInOurDB[barsDetailed[i].PlaceID] = getBar(barID).Bars[0]
+		} else {
+			_, barCreatorIsOwner := existingBar.Hosts["184484668766597"]
+			if barCreatorIsOwner == true {
+				var updateBarQueryResult = updateBarHelper(address, attendeesMapCleanUpHourInZulu, existingBar.BarID, details, latitude, longitude, name, phoneNumber, schedule, timeZone)
+				queryResult = convertTwoQueryResultsToOne(queryResult, updateBarQueryResult)
+			}
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -260,6 +268,108 @@ func getPlaceIDsOfBarsFromGooglePlacesAPI(latitude string, longitude string, rad
 		}
 	}
 	return nil
+}
+
+func getBarsWithinThisSquareMileageFromTheseCoordinates(latitudeString string, longitudeString string, squareMileageString string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "getBarsWithinThisSquareMileageFromTheseCoordinates function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+
+	latitude, latitudeErr := strconv.ParseFloat(latitudeString, 64)
+	longitude, longitudeErr := strconv.ParseFloat(longitudeString, 64)
+	squareMileage, squareMileageErr := strconv.Atoi(squareMileageString)
+	if latitudeErr != nil {
+		queryResult.Error = "getBarsWithinThisSquareMileageFromTheseCoordinates function: latitude parameter is messed up. " + latitudeErr.Error()
+		return queryResult
+	}
+	if longitudeErr != nil {
+		queryResult.Error = "getBarsWithinThisSquareMileageFromTheseCoordinates function: longitude parameter is messed up. " + longitudeErr.Error()
+		return queryResult
+	}
+	if squareMileageErr != nil {
+		queryResult.Error = "getBarsWithinThisSquareMileageFromTheseCoordinates function: squareMileage isn't an integer. " + squareMileageErr.Error()
+		return queryResult
+	}
+	squareMileage += 4 // just in case
+	// Finally
+	var bars []BarData
+	firstCall := true
+	var lastEvaluatedKey map[string]*dynamodb.AttributeValue
+
+	for {
+		var scanItemsInput = dynamodb.ScanInput{}
+		scanItemsInput.SetTableName("Bar")
+		if firstCall == false && lastEvaluatedKey == nil {
+			break
+		} else {
+			scanItemsInput.SetExclusiveStartKey(lastEvaluatedKey)
+		}
+		expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+		// approximately (it's a square not a circle) getting bars within a 25 mile radius
+		// 1 degree of latitude is approximately 69 miles
+		// (1 degree of latitude / 69 miles) * (squareMileage / 2) = # degrees of latitude that equals half of the squareMileage
+		degreesOfLatitudeWhichEqualHalfThisSquareMileage := (float64(1.00) / float64(69.00)) * (float64(squareMileage) / float64(2.00))
+		// # of degrees / 25 miles = (1 degree of longitude / (69.1703 * COS(Latitude * 0.0174533)) ) * (squareMileage / 2)
+		degreesOfLongitudeWhichEqualHalfThisSquareMileage := (1 / (69.1703 * math.Cos(latitude*0.0174533))) * (float64(squareMileage) / float64(2.00))
+		latitudeSouth := latitude - degreesOfLatitudeWhichEqualHalfThisSquareMileage
+		latitudeNorth := latitude + degreesOfLatitudeWhichEqualHalfThisSquareMileage
+		longitudeEast := longitude - degreesOfLongitudeWhichEqualHalfThisSquareMileage
+		longitudeWest := longitude + degreesOfLongitudeWhichEqualHalfThisSquareMileage
+		latitudeSouthAttributeValue := dynamodb.AttributeValue{}
+		latitudeNorthAttributeValue := dynamodb.AttributeValue{}
+		longitudeEastAttributeValue := dynamodb.AttributeValue{}
+		longitudeWestAttributeValue := dynamodb.AttributeValue{}
+		latitudeSouthAttributeValue.SetN(strconv.FormatFloat(latitudeSouth, 'f', -1, 64))
+		latitudeNorthAttributeValue.SetN(strconv.FormatFloat(latitudeNorth, 'f', -1, 64))
+		longitudeEastAttributeValue.SetN(strconv.FormatFloat(longitudeEast, 'f', -1, 64))
+		longitudeWestAttributeValue.SetN(strconv.FormatFloat(longitudeWest, 'f', -1, 64))
+		expressionValuePlaceholders[":latitudeSouth"] = &latitudeSouthAttributeValue
+		expressionValuePlaceholders[":latitudeNorth"] = &latitudeNorthAttributeValue
+		expressionValuePlaceholders[":longitudeEast"] = &longitudeEastAttributeValue
+		expressionValuePlaceholders[":longitudeWest"] = &longitudeWestAttributeValue
+		scanItemsInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+		scanItemsInput.SetFilterExpression("(latitude BETWEEN :latitudeSouth AND :latitudeNorth) AND (longitude BETWEEN :longitudeEast AND :longitudeWest)")
+		scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
+		var dynamodbCall = DynamodbCall{}
+		if err2 != nil {
+			dynamodbCall.Error = "getBarsWithinThisSquareMileageFromTheseCoordinates function: Scan error. " + err2.Error()
+			dynamodbCall.Succeeded = false
+			queryResult.DynamodbCalls[0] = dynamodbCall
+			queryResult.Error += dynamodbCall.Error
+			return queryResult
+		}
+		dynamodbCall.Succeeded = true
+		queryResult.DynamodbCalls[0] = dynamodbCall
+
+		data := scanItemsOutput.Items
+		barsOnThisPage := make([]BarData, len(data))
+		jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &barsOnThisPage)
+		if jsonErr != nil {
+			queryResult.Error = "getBarsWithinThisSquareMileageFromTheseCoordinates function: UnmarshalListOfMaps error. " + jsonErr.Error()
+			return queryResult
+		}
+		bars = append(bars, barsOnThisPage...)
+		lastEvaluatedKey = scanItemsOutput.LastEvaluatedKey
+		firstCall = false
+	}
+
+	queryResult.Bars = bars
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
 }
 
 func getAllBars() QueryResult {

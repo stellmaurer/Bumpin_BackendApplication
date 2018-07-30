@@ -26,6 +26,7 @@ func deletePerson(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := deletePersonHelper(facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 

@@ -31,6 +31,7 @@ func rateParty(w http.ResponseWriter, r *http.Request) {
 	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
 	queryResult := ratePartyHelper(partyID, facebookID, rating, timeLastRated, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -53,6 +54,7 @@ func rateBar(w http.ResponseWriter, r *http.Request) {
 	}
 	queryResult = rateBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -65,6 +67,7 @@ func clearRatingForParty(w http.ResponseWriter, r *http.Request) {
 	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
 	queryResult := clearRatingForPartyHelper(partyID, facebookID, timeLastRated, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -86,6 +89,7 @@ func clearRatingForBar(w http.ResponseWriter, r *http.Request) {
 	}
 	queryResult = clearRatingForBarHelper(barID, facebookID, isMale, name, status, timeLastRated, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 

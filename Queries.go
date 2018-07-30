@@ -30,6 +30,7 @@ func tables(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(data)
 }
 
@@ -150,6 +151,7 @@ type BarData struct {
 	PhoneNumber                   string                    `json:"phoneNumber"`
 	Schedule                      map[string]ScheduleForDay `json:"schedule"`
 	TimeZone                      uint32                    `json:"timeZone"`
+	GooglePlaceID                 string                    `json:"googlePlaceID"`
 }
 
 // ScheduleForDay : A particular day's schedule
@@ -166,6 +168,7 @@ type GooglePlace struct {
 
 // GooglePlaceDetailed : A google place with more details in json format
 type GooglePlaceDetailed struct {
+	PlaceID      string       `json:"place_id"`
 	Name         string       `json:"name"`
 	Address      string       `json:"formatted_address"`
 	PhoneNumber  string       `json:"formatted_phone_number"`
@@ -204,6 +207,7 @@ type Attendee struct {
 type BarKey struct {
 	Key     string `json:"key"`
 	Address string `json:"address"`
+	BarID   string `json:"barID"`
 }
 
 // QueryResult : The result of a query in json format

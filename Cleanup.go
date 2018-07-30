@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,6 +24,203 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
+
+func getBarsThatBarCreatorNeedsAddedToTheirBarHostForMap(w http.ResponseWriter, r *http.Request) {
+	numOfBarIDsToAddToPersonsBarHostForMap := 0
+	var bars []BarData
+	queryResult := getAllBars()
+	if queryResult.Succeeded == true {
+		bars = queryResult.Bars
+		queryResult = getPersonHelper("184484668766597")
+		if queryResult.Succeeded == true {
+			person := queryResult.People[0]
+			for i := 0; i < len(bars); i++ {
+				_, personIsOwner := bars[i].Hosts[person.FacebookID]
+				_, personHasBarInBarHostFor := person.BarHostFor[bars[i].BarID]
+				if (personIsOwner == true) && (personHasBarInBarHostFor == false) {
+					fmt.Println(bars[i].BarID)
+					numOfBarIDsToAddToPersonsBarHostForMap++
+				}
+			}
+		}
+	}
+	fmt.Println("number of bars to add = ", numOfBarIDsToAddToPersonsBarHostForMap)
+	queryResult.People = nil
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+/*
+
+TODO: Need to get rid of these bars too:
+	Bar-B-Que, BBQ, QDOBA
+
+*/
+
+func deleteBarsThatArentOpenAfter1159PMOnFriday(w http.ResponseWriter, r *http.Request) {
+	queryResult := deleteBarsThatArentOpenAfter1159PMOnFridayHelper()
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func deleteBarsThatArentOpenAfter1159PMOnFridayHelper() QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "deleteBarsThatArentOpenAfter1159PMOnFridayHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+
+	// Finally
+	var bars []BarData
+	firstCall := true
+	var lastEvaluatedKey map[string]*dynamodb.AttributeValue
+
+	for {
+		var scanItemsInput = dynamodb.ScanInput{}
+		scanItemsInput.SetTableName("Bar")
+		if firstCall == false && lastEvaluatedKey == nil {
+			break
+		} else {
+			scanItemsInput.SetExclusiveStartKey(lastEvaluatedKey)
+		}
+
+		scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
+		var dynamodbCall = DynamodbCall{}
+		if err2 != nil {
+			dynamodbCall.Error = "deleteBarsThatArentOpenAfter1159PMOnFridayHelper function: Scan error. " + err2.Error()
+			dynamodbCall.Succeeded = false
+			queryResult.DynamodbCalls[0] = dynamodbCall
+			queryResult.Error += dynamodbCall.Error
+			return queryResult
+		}
+		dynamodbCall.Succeeded = true
+		queryResult.DynamodbCalls[0] = dynamodbCall
+
+		data := scanItemsOutput.Items
+		barsOnThisPage := make([]BarData, len(data))
+		jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &barsOnThisPage)
+		if jsonErr != nil {
+			queryResult.Error = "deleteBarsThatArentOpenAfter1159PMOnFridayHelper function: UnmarshalListOfMaps error. " + jsonErr.Error()
+			return queryResult
+		}
+		bars = append(bars, barsOnThisPage...)
+		lastEvaluatedKey = scanItemsOutput.LastEvaluatedKey
+		firstCall = false
+	}
+
+	queryResult.Succeeded = true
+
+	var num = 0
+	for i := 0; i < len(bars); i++ {
+		var strArray []string = strings.Split(bars[i].Schedule["Friday"].Open, "-")
+		if len(strArray) <= 1 {
+			strArray = strings.Split(bars[i].Schedule["Friday"].Open, "–")
+		}
+		if strings.Contains(strArray[len(strArray)-1], "N/A") == false {
+			if strings.Contains(strArray[len(strArray)-1], "AM") == false {
+				var deleteBarQueryResult = deleteBarHelper(bars[i].BarID)
+				if deleteBarQueryResult.Succeeded == false {
+					queryResult = convertTwoQueryResultsToOne(queryResult, deleteBarQueryResult)
+				}
+				num++
+			}
+		}
+	}
+
+	fmt.Println("number of bars deleted = ", num)
+	return queryResult
+}
+
+func deleteAllBarsThatWereAutoPopulated(w http.ResponseWriter, r *http.Request) {
+	queryResult := deleteAllBarsThatWereAutoPopulatedHelper()
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func deleteAllBarsThatWereAutoPopulatedHelper() QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "deleteAllBarsHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+
+	// Finally
+	var bars []BarData
+	firstCall := true
+	var lastEvaluatedKey map[string]*dynamodb.AttributeValue
+
+	for {
+		var scanItemsInput = dynamodb.ScanInput{}
+		scanItemsInput.SetTableName("Bar")
+		if firstCall == false && lastEvaluatedKey == nil {
+			break
+		} else {
+			scanItemsInput.SetExclusiveStartKey(lastEvaluatedKey)
+		}
+
+		scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
+		var dynamodbCall = DynamodbCall{}
+		if err2 != nil {
+			dynamodbCall.Error = "deleteAllBarsHelper function: Scan error. " + err2.Error()
+			dynamodbCall.Succeeded = false
+			queryResult.DynamodbCalls[0] = dynamodbCall
+			queryResult.Error += dynamodbCall.Error
+			return queryResult
+		}
+		dynamodbCall.Succeeded = true
+		queryResult.DynamodbCalls[0] = dynamodbCall
+
+		data := scanItemsOutput.Items
+		barsOnThisPage := make([]BarData, len(data))
+		jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &barsOnThisPage)
+		if jsonErr != nil {
+			queryResult.Error = "deleteAllBarsHelper function: UnmarshalListOfMaps error. " + jsonErr.Error()
+			return queryResult
+		}
+		bars = append(bars, barsOnThisPage...)
+		lastEvaluatedKey = scanItemsOutput.LastEvaluatedKey
+		firstCall = false
+	}
+
+	queryResult.Succeeded = true
+
+	for i := 0; i < len(bars); i++ {
+		_, barCreatorIsOwner := bars[i].Hosts["184484668766597"]
+		if barCreatorIsOwner {
+			var deleteBarQueryResult = deleteBarHelper(bars[i].BarID)
+			if deleteBarQueryResult.Succeeded == false {
+				queryResult = convertTwoQueryResultsToOne(queryResult, deleteBarQueryResult)
+			}
+		}
+	}
+
+	return queryResult
+}
 
 func clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight(w http.ResponseWriter, r *http.Request) {
 	queryResult, people := findAllPeopleThatNeedTheirNumberOfFriendsThatMightGoOutCleared()
@@ -38,6 +236,7 @@ func clearNumberOfFriendsThatMightGoOutForPeopleWhereTheirLocalTimeIsMidnight(w 
 		queryResult.DynamodbCalls = nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -245,6 +444,7 @@ var zuluHourOfBarClose = map[int]float32{
 func cleanUpAttendeesMapForBarsThatRecentlyClosed(w http.ResponseWriter, r *http.Request) {
 	queryResult := cleanUpAttendeesMapForBarsThatRecentlyClosedHelper()
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -263,6 +463,7 @@ func deletePartiesThatHaveExpired(w http.ResponseWriter, r *http.Request) {
 		queryResult.DynamodbCalls = nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
