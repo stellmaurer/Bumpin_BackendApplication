@@ -26,6 +26,7 @@ func createClaimKeyForBar(w http.ResponseWriter, r *http.Request) {
 	barID := r.Form.Get("barID")
 	queryResult := createClaimKeyForBarHelper(barID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -80,6 +81,7 @@ func createBarKeyForAddress(w http.ResponseWriter, r *http.Request) {
 	address := r.Form.Get("address")
 	queryResult := createBarKeyForAddressHelper(address)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 

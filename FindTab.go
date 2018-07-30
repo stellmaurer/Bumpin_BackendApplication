@@ -40,6 +40,7 @@ func claimBar(w http.ResponseWriter, r *http.Request) {
 
 	queryResult = claimBarHelper(claimKey, facebookID, isMale, nameOfCreator)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -54,6 +55,7 @@ func getParties(w http.ResponseWriter, r *http.Request) {
 		queryResult = getPartiesHelper(partyIDs)
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -75,6 +77,7 @@ func barsCloseToMe(w http.ResponseWriter, r *http.Request) {
 	}
 	queryResult = barsCloseToMeHelper(latitude, longitude)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -86,6 +89,7 @@ func changeAttendanceStatusToParty(w http.ResponseWriter, r *http.Request) {
 	status := r.Form.Get("status")
 	queryResult := changeAttendanceStatusToPartyHelper(partyID, facebookID, status)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -116,6 +120,7 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 	}
 	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -135,6 +140,7 @@ func changeAtPartyStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	queryResult = changeAtPartyStatusHelper(partyID, facebookID, atParty, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -165,6 +171,7 @@ func changeAtBarStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -201,6 +208,7 @@ func inviteFriendToParty(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -943,6 +951,7 @@ func sendInvitationsAsGuestOfParty(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 

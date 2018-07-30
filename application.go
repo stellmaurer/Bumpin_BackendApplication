@@ -154,7 +154,7 @@ func main() {
 	// curl http://localhost:5000/deleteParty -d "partyID=5233516922553495941"
 	go http.HandleFunc("/deleteParty", deleteParty)
 	// curl http://localhost:5000/deleteBar -d "barID=2629732187453375056"
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteBar -d "barID=218591820409326495"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/deleteBar -d "barID="
 	go http.HandleFunc("/deleteBar", deleteBar)
 	// hostsToAddFacebookIDs&hostsToAddNames&hostsToRemoveFacebookIDs
 	// curl http://localhost:5000/updateParty -d "partyID=13078678500578502570&address=8124%20N%20Seneca%20Rd&details=Steve%20=%20The%20Bomb&drinksProvided=true&endTime=2017-12-25T02:00:00Z&feeForDrinks=false&invitesForNewInvitees=3&latitude=43.1647483&longitude=-87.90766209999998&startTime=2017-12-23T19:02:00Z&title=Steves%20DA%20BOMB%20Party&additionsListFacebookID=107798829983852,111354699627054&additionsListIsMale=false,false&additionsListName=Nancy%20Greeneescu,Betty%20Chaison&hostsToAddFacebookIDs=122107341882417,115693492525474&hostsToAddNames=Lisa%20Chengberg,Linda%20Qinstein"
@@ -241,7 +241,7 @@ func main() {
 	// curl http://localhost:5000/createBarKeyForAddress
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createBarKeyForAddress -d "address=305%20N%20Midvale%20Blvd%20Apt%20D%20Madison%20WI"
 	go http.HandleFunc("/createBarKeyForAddress", createBarKeyForAddress)
-	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createClaimKeyForBar -d "barID=16190630402960856425"
+	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/createClaimKeyForBar -d "barID=991135472298699438"
 	go http.HandleFunc("/createClaimKeyForBar", createClaimKeyForBar)
 	// curl http://localhost:5000/getBarKey -d "key="
 	// curl http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getBarKey -d "key=0yweLNBFuooCgvQD"
@@ -250,12 +250,17 @@ func main() {
 	go http.HandleFunc("/getClaimKey", getClaimKey)
 	// curl http://localhost:5000/deleteBarKey -d "key="
 	go http.HandleFunc("/deleteBarKey", deleteBarKey)
-	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=43.070963&longitude=-89.396784&radius=200&squareMiles=2"
+	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=43.070963&longitude=-89.396784&radius=200&squareMiles=30" Madison, WI
+	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=45.014322&longitude=-93.270163&radius=200&squareMiles=60" Minneapolis, MN
 	go http.HandleFunc("/populateBarsFromGooglePlacesAPI", populateBarsFromGooglePlacesAPI)
 	// curl "http://localhost:5000/checkForBarDuplicates"
 	go http.HandleFunc("/checkForBarDuplicates", checkForBarDuplicates)
 	// curl "http://localhost:5000/deleteAllBarsThatWereAutoPopulated"
 	go http.HandleFunc("/deleteAllBarsThatWereAutoPopulated", deleteAllBarsThatWereAutoPopulated)
+	// curl "http://localhost:5000/deleteBarsThatArentOpenAfter1159PMOnFriday"
+	go http.HandleFunc("/deleteBarsThatArentOpenAfter1159PMOnFriday", deleteBarsThatArentOpenAfter1159PMOnFriday)
+	// curl "http://localhost:5000/getBarsThatBarCreatorNeedsAddedToTheirBarHostForMap"
+	go http.HandleFunc("/getBarsThatBarCreatorNeedsAddedToTheirBarHostForMap", getBarsThatBarCreatorNeedsAddedToTheirBarHostForMap)
 
 	http.ListenAndServe(":5000", nil)
 }

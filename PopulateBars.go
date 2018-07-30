@@ -41,6 +41,7 @@ func checkForBarDuplicates(w http.ResponseWriter, r *http.Request) {
 	}
 	var message = "Number of bar duplicates = " + strconv.Itoa(numberOfDuplicates)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(message)
 }
 
@@ -127,6 +128,7 @@ func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 

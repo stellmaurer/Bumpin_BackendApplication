@@ -27,6 +27,7 @@ func logError(w http.ResponseWriter, r *http.Request) {
 	errorDescription := r.Form.Get("errorDescription")
 	queryResult := logErrorHelper(ID, errorType, errorDescription)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 

@@ -36,6 +36,7 @@ func decrementNumberOfFriendsThatMightGoOutForTheseFriends(w http.ResponseWriter
 		queryResult = decrementNumberOfFriendsThatMightGoOutForTheseFriendsHelper(friendFacebookIDs)
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -134,6 +135,7 @@ func incrementNumberOfFriendsThatMightGoOutForTheseFriends(w http.ResponseWriter
 		queryResult = incrementNumberOfFriendsThatMightGoOutForTheseFriendsHelper(friendFacebookIDs)
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -230,6 +232,7 @@ func getFriends(w http.ResponseWriter, r *http.Request) {
 		queryResult = getFriendsHelper(facebookIDs)
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -296,6 +299,7 @@ func updatePersonStatus(w http.ResponseWriter, r *http.Request) {
 	manuallySet := r.Form.Get("manuallySet")
 	queryResult := updatePersonStatusHelper(facebookID, goingOut, timeGoingOutStatusWasSet, manuallySet)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -372,6 +376,7 @@ func createBug(w http.ResponseWriter, r *http.Request) {
 	description := r.Form.Get("description")
 	queryResult := createBugHelper(bugID, facebookID, description)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -429,6 +434,7 @@ func createFeatureRequest(w http.ResponseWriter, r *http.Request) {
 	description := r.Form.Get("description")
 	queryResult := createFeatureRequestHelper(featureRequestID, facebookID, description)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -498,6 +504,7 @@ func updateActivityBlockList(w http.ResponseWriter, r *http.Request) {
 	removalsQueryResult := removalsActivityBlockListHelper(myFacebookID, removalsList)
 	queryResult := convertTwoQueryResultsToOne(additionsQueryResult, removalsQueryResult)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -514,6 +521,7 @@ func updateIgnoreList(w http.ResponseWriter, r *http.Request) {
 	}
 	queryResult := updateIgnoreListHelper(myFacebookID, additionsList, removalsList)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 

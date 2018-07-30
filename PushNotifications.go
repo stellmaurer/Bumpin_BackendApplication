@@ -49,6 +49,7 @@ func sendGoingOutStatusNotificationToPeopleWhoHaveFriendsGoingOutAndHaveALocalTi
 		queryResult.DynamodbCalls = nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -139,6 +140,7 @@ func clearOutstandingNotificationCountForPerson(w http.ResponseWriter, r *http.R
 	facebookID := r.Form.Get("facebookID")
 	queryResult := clearOutstandingNotificationCountForPersonHelper(facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -200,6 +202,7 @@ func incrementOutstandingNotificationCountForPerson(w http.ResponseWriter, r *ht
 	facebookID := r.Form.Get("facebookID")
 	queryResult := incrementOutstandingNotificationCountForPersonHelper(facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -261,6 +264,7 @@ func deleteNotification(w http.ResponseWriter, r *http.Request) {
 	notificationID := r.Form.Get("notificationID")
 	queryResult := deleteNotificationHelper(notificationID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -305,6 +309,7 @@ func testCreateAndSendNotificationsToThesePeople(w http.ResponseWriter, r *http.
 	people := []string{"10155227369101712", "10216576646672295", "10154326505409816"}
 	queryResult := createAndSendNotificationsToThesePeople(people, "This is testing the createAndSendNotifications function.", "9999")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -420,6 +425,7 @@ func testGetPeople(w http.ResponseWriter, r *http.Request) {
 	people := []string{"10155227369101712", "10216576646672295", "10154326505409816"}
 	queryResult := getPeople(people)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -487,6 +493,7 @@ func markNotificationAsSeen(w http.ResponseWriter, r *http.Request) {
 	notificationID := r.Form.Get("notificationID")
 	queryResult := markNotificationAsSeenHelper(notificationID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -549,6 +556,7 @@ func getNotificationsForPerson(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := getNotificationsForPersonHelper(facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -615,6 +623,7 @@ func testCreateNotification(w http.ResponseWriter, r *http.Request) {
 	partyOrBarID := r.Form.Get("partyOrBarID")
 	queryResult := createNotification(receiverFacebookID, message, partyOrBarID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -686,12 +695,14 @@ func testSendiOSPushNotification(w http.ResponseWriter, r *http.Request) {
 	deviceToken := r.Form.Get("deviceToken")
 	queryResult := sendiOSPushNotification(deviceToken, 1, "This is a message!", "000111")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
 func testSendAndroidPushNotification(w http.ResponseWriter, r *http.Request) {
 	queryResult := sendAndroidPushNotification("d8ueLVJ2Et0:APA91bF6RtEWZx0lnm63Q74cUTAkZbhSxreX8laylRvUh8qB4F8mSq7Gu2mmkflBOuur6JPoBKH9LnUvplVwtdtFi0fm7N3DNKVFBJV5geJsoeKZL1qHoDtmnhf0MmxopMw4j0bWsjfr455T5MiWb26ue-LBZmG5Mg", "This is a message!", "000111")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -809,6 +820,7 @@ func testiOSPushNotification(w http.ResponseWriter, r *http.Request) {
 	res, err := client.Push(notification)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(res)
 }
 
@@ -847,5 +859,6 @@ func testAndroidPushNotification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(status)
 }

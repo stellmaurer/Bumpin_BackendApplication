@@ -41,6 +41,7 @@ func createOrUpdatePerson(w http.ResponseWriter, r *http.Request) {
 	queryResult2 := updatePersonHelper(facebookID, isMale, name, platform, deviceToken, sevenPMLocalHourInZulu)
 	queryResult = convertTwoQueryResultsToOne(queryResult1, queryResult2)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -48,6 +49,7 @@ func getPerson(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.URL.Query().Get("facebookID")
 	queryResult := getPersonHelper(facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 

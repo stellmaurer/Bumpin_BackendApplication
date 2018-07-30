@@ -32,6 +32,7 @@ func getClaimKey(w http.ResponseWriter, r *http.Request) {
 	key := r.Form.Get("key")
 	queryResult := getClaimKeyHelper(key)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -40,6 +41,7 @@ func getBarKey(w http.ResponseWriter, r *http.Request) {
 	key := r.Form.Get("key")
 	queryResult := getBarKeyHelper(key)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -48,6 +50,7 @@ func deleteBarKey(w http.ResponseWriter, r *http.Request) {
 	key := r.Form.Get("key")
 	queryResult := deleteBarKeyHelper(key)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -100,6 +103,7 @@ func createParty(w http.ResponseWriter, r *http.Request) {
 		queryResult.Error = partyID
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -166,6 +170,7 @@ func createBar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -175,6 +180,7 @@ func deleteParty(w http.ResponseWriter, r *http.Request) {
 	partyID := r.Form.Get("partyID")
 	queryResult := deletePartyHelper(partyID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -184,6 +190,7 @@ func deleteBar(w http.ResponseWriter, r *http.Request) {
 	barID := r.Form.Get("barID")
 	queryResult := deleteBarHelper(barID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -226,6 +233,7 @@ func updateParty(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -274,6 +282,7 @@ func updateBar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -293,6 +302,7 @@ func setNumberOfInvitationsLeftForInvitees(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -383,6 +393,7 @@ func removePartyHost(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := removePartyHostHelper(partyID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -393,6 +404,7 @@ func removeBarHost(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := removeBarHostHelper(barID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -412,6 +424,7 @@ func acceptInvitationToHostParty(w http.ResponseWriter, r *http.Request) {
 	}
 	queryResult = acceptInvitationToHostPartyHelper(partyID, facebookID, isMale, name)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -422,6 +435,7 @@ func acceptInvitationToHostBar(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := acceptInvitationToHostBarHelper(barID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -432,6 +446,7 @@ func declineInvitationToHostParty(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := declineInvitationToHostPartyHelper(partyID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -442,6 +457,7 @@ func declineInvitationToHostBar(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.Form.Get("facebookID")
 	queryResult := declineInvitationToHostBarHelper(barID, facebookID)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
@@ -663,6 +679,7 @@ func getBars(w http.ResponseWriter, r *http.Request) {
 		queryResult = getBarsHelper(barIDs)
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
 }
 
