@@ -104,10 +104,13 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	sevenPMLocalHourInZuluAttributeValue.SetN(sevenPMLocalHourInZulu)
 	numberOfFriendsThatMightGoOutAttributeValue.SetN("0")
 	statusMap := make(map[string]*dynamodb.AttributeValue)
+	var manuallySetAttribute = dynamodb.AttributeValue{}
 	var goingOutAttribute = dynamodb.AttributeValue{}
 	var timeGoingOutStatusWasSetAttribute = dynamodb.AttributeValue{}
+	manuallySetAttribute.SetS("No")
 	goingOutAttribute.SetS("Unknown")
 	timeGoingOutStatusWasSetAttribute.SetS("2000-01-01T00:00:00Z")
+	statusMap["manuallySet"] = &manuallySetAttribute
 	statusMap["goingOut"] = &goingOutAttribute
 	statusMap["timeGoingOutStatusWasSet"] = &timeGoingOutStatusWasSetAttribute
 	goingOutStatusAttributeValue.SetM(statusMap)
