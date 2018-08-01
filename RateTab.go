@@ -46,13 +46,26 @@ func rateBar(w http.ResponseWriter, r *http.Request) {
 	status := r.Form.Get("status")
 	timeLastRated := r.Form.Get("timeLastRated")
 	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
+	timeOfCheckIn := r.Form.Get("timeOfCheckIn")
+	saidThereWasACover, saidThereWasACoverConvErr := strconv.ParseBool(r.Form.Get("saidThereWasACover"))
+	saidThereWasALine, saidThereWasALineConvErr := strconv.ParseBool(r.Form.Get("saidThereWasALine"))
 	var queryResult = QueryResult{}
 	if isMaleConvErr != nil {
 		queryResult.Error = "rateBar function: isMale parameter issue. " + isMaleConvErr.Error()
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult = rateBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation)
+	if saidThereWasACoverConvErr != nil {
+		queryResult.Error = "rateBar function: HTTP post request saidThereWasACover parameter messed up. " + saidThereWasACoverConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	if saidThereWasALineConvErr != nil {
+		queryResult.Error = "rateBar function: HTTP post request saidThereWasALine parameter messed up. " + saidThereWasALineConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = rateBarHelper(barID, facebookID, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation, timeOfCheckIn, saidThereWasACover, saidThereWasALine)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
@@ -81,13 +94,26 @@ func clearRatingForBar(w http.ResponseWriter, r *http.Request) {
 	status := r.Form.Get("status")
 	timeLastRated := r.Form.Get("timeLastRated")
 	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
+	timeOfCheckIn := r.Form.Get("timeOfCheckIn")
+	saidThereWasACover, saidThereWasACoverConvErr := strconv.ParseBool(r.Form.Get("saidThereWasACover"))
+	saidThereWasALine, saidThereWasALineConvErr := strconv.ParseBool(r.Form.Get("saidThereWasALine"))
 	var queryResult = QueryResult{}
 	if isMaleConvErr != nil {
 		queryResult.Error = "clearRatingForBar function: isMale parameter issue. " + isMaleConvErr.Error()
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult = clearRatingForBarHelper(barID, facebookID, isMale, name, status, timeLastRated, timeOfLastKnownLocation)
+	if saidThereWasACoverConvErr != nil {
+		queryResult.Error = "rateBar function: HTTP post request saidThereWasACover parameter messed up. " + saidThereWasACoverConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	if saidThereWasALineConvErr != nil {
+		queryResult.Error = "rateBar function: HTTP post request saidThereWasALine parameter messed up. " + saidThereWasALineConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = clearRatingForBarHelper(barID, facebookID, isMale, name, status, timeLastRated, timeOfLastKnownLocation, timeOfCheckIn, saidThereWasACover, saidThereWasALine)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
@@ -163,7 +189,7 @@ func ratePartyHelper(partyID string, facebookID string, rating string, timeLastR
 	return queryResult
 }
 
-func rateBarHelper(barID string, facebookID string, isMale bool, name string, rating string, status string, timeLastRated string, timeOfLastKnownLocation string) QueryResult {
+func rateBarHelper(barID string, facebookID string, isMale bool, name string, rating string, status string, timeLastRated string, timeOfLastKnownLocation string, timeOfCheckIn string, saidThereWasACover bool, saidThereWasALine bool) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -196,6 +222,9 @@ func rateBarHelper(barID string, facebookID string, isMale bool, name string, ra
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
 	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
+	var timeOfCheckInAttribute = dynamodb.AttributeValue{}
+	var saidThereWasACoverAttribute = dynamodb.AttributeValue{}
+	var saidThereWasALineAttribute = dynamodb.AttributeValue{}
 	atBarAttribute.SetBOOL(true)
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
@@ -203,6 +232,9 @@ func rateBarHelper(barID string, facebookID string, isMale bool, name string, ra
 	statusAttribute.SetS(status)
 	timeLastRatedAttribute.SetS(timeLastRated)
 	timeOfLastKnownLocationAttribute.SetS(timeOfLastKnownLocation)
+	timeOfCheckInAttribute.SetS(timeOfCheckIn)
+	saidThereWasACoverAttribute.SetBOOL(saidThereWasACover)
+	saidThereWasALineAttribute.SetBOOL(saidThereWasALine)
 	attendeeMap["atBar"] = &atBarAttribute
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameAttribute
@@ -210,6 +242,9 @@ func rateBarHelper(barID string, facebookID string, isMale bool, name string, ra
 	attendeeMap["status"] = &statusAttribute
 	attendeeMap["timeLastRated"] = &timeLastRatedAttribute
 	attendeeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
+	attendeeMap["timeOfCheckIn"] = &timeOfCheckInAttribute
+	attendeeMap["saidThereWasACover"] = &saidThereWasACoverAttribute
+	attendeeMap["saidThereWasALine"] = &saidThereWasALineAttribute
 	attendee.SetM(attendeeMap)
 	expressionValuePlaceholders[":attendee"] = &attendee
 
@@ -311,7 +346,7 @@ func clearRatingForPartyHelper(partyID string, facebookID string, timeLastRated 
 	return queryResult
 }
 
-func clearRatingForBarHelper(barID string, facebookID string, isMale bool, name string, status string, timeLastRated string, timeOfLastKnownLocation string) QueryResult {
+func clearRatingForBarHelper(barID string, facebookID string, isMale bool, name string, status string, timeLastRated string, timeOfLastKnownLocation string, timeOfCheckIn string, saidThereWasACover bool, saidThereWasALine bool) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -344,6 +379,9 @@ func clearRatingForBarHelper(barID string, facebookID string, isMale bool, name 
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
 	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
+	var timeOfCheckInAttribute = dynamodb.AttributeValue{}
+	var saidThereWasACoverAttribute = dynamodb.AttributeValue{}
+	var saidThereWasALineAttribute = dynamodb.AttributeValue{}
 	atBarAttribute.SetBOOL(false)
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
@@ -351,6 +389,9 @@ func clearRatingForBarHelper(barID string, facebookID string, isMale bool, name 
 	statusAttribute.SetS(status)
 	timeLastRatedAttribute.SetS(timeLastRated)
 	timeOfLastKnownLocationAttribute.SetS(timeOfLastKnownLocation)
+	timeOfCheckInAttribute.SetS(timeOfCheckIn)
+	saidThereWasACoverAttribute.SetBOOL(saidThereWasACover)
+	saidThereWasALineAttribute.SetBOOL(saidThereWasALine)
 	attendeeMap["atBar"] = &atBarAttribute
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameAttribute
@@ -358,6 +399,9 @@ func clearRatingForBarHelper(barID string, facebookID string, isMale bool, name 
 	attendeeMap["status"] = &statusAttribute
 	attendeeMap["timeLastRated"] = &timeLastRatedAttribute
 	attendeeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
+	attendeeMap["timeOfCheckIn"] = &timeOfCheckInAttribute
+	attendeeMap["saidThereWasACover"] = &saidThereWasACoverAttribute
+	attendeeMap["saidThereWasALine"] = &saidThereWasALineAttribute
 	attendee.SetM(attendeeMap)
 	expressionValuePlaceholders[":attendee"] = &attendee
 

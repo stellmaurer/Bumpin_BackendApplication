@@ -201,6 +201,9 @@ type Attendee struct {
 	Status                  string `json:"status"`
 	TimeLastRated           string `json:"timeLastRated"`
 	TimeOfLastKnownLocation string `json:"timeOfLastKnownLocation"`
+	TimeOfCheckIn           string `json:"timeOfCheckIn"`
+	SaidThereWasACover      bool   `json:"saidThereWasACover"`
+	SaidThereWasALine       bool   `json:"saidThereWasALine"`
 }
 
 // BarKey : A BarKey in the database
