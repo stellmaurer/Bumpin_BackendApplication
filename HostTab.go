@@ -898,6 +898,9 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
 	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
+	var timeOfCheckInAttribute = dynamodb.AttributeValue{}
+	var saidThereWasACoverAttribute = dynamodb.AttributeValue{}
+	var saidThereWasALineAttribute = dynamodb.AttributeValue{}
 	atBarAttribute.SetBOOL(false)
 	isMaleAttribute.SetBOOL(isMale)
 	nameOfCreatorAttribute.SetS(nameOfCreator)
@@ -905,6 +908,10 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	statusAttribute.SetS("Maybe")
 	timeLastRatedAttribute.SetS("2000-01-01T00:00:00Z")
 	timeOfLastKnownLocationAttribute.SetS("2000-01-01T00:00:00Z")
+	timeOfCheckInAttribute.SetS("2000-01-01T00:00:00Z")
+	saidThereWasACoverAttribute.SetBOOL(false)
+	saidThereWasALineAttribute.SetBOOL(false)
+
 	attendeeMap["atBar"] = &atBarAttribute
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameOfCreatorAttribute
@@ -912,6 +919,9 @@ func createBarHelper(barKey string, facebookID string, isMale bool, nameOfCreato
 	attendeeMap["status"] = &statusAttribute
 	attendeeMap["timeLastRated"] = &timeLastRatedAttribute
 	attendeeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
+	attendeeMap["timeOfCheckIn"] = &timeOfCheckInAttribute
+	attendeeMap["saidThereWasACover"] = &saidThereWasACoverAttribute
+	attendeeMap["saidThereWasALine"] = &saidThereWasALineAttribute
 
 	attendee.SetM(attendeeMap)
 	attendeesMap[facebookID] = &attendee

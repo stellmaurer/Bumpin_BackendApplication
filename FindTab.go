@@ -105,6 +105,9 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 	status := r.Form.Get("status")
 	timeLastRated := r.Form.Get("timeLastRated")
 	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
+	timeOfCheckIn := r.Form.Get("timeOfCheckIn")
+	saidThereWasACover, saidThereWasACoverConvErr := strconv.ParseBool(r.Form.Get("saidThereWasACover"))
+	saidThereWasALine, saidThereWasALineConvErr := strconv.ParseBool(r.Form.Get("saidThereWasALine"))
 
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
@@ -118,7 +121,17 @@ func changeAttendanceStatusToBar(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation)
+	if saidThereWasACoverConvErr != nil {
+		queryResult.Error = "changeAttendanceStatusToBar function: HTTP post request saidThereWasACover parameter messed up. " + saidThereWasACoverConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	if saidThereWasALineConvErr != nil {
+		queryResult.Error = "changeAttendanceStatusToBar function: HTTP post request saidThereWasALine parameter messed up. " + saidThereWasALineConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation, timeOfCheckIn, saidThereWasACover, saidThereWasALine)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
@@ -156,6 +169,9 @@ func changeAtBarStatus(w http.ResponseWriter, r *http.Request) {
 	status := r.Form.Get("status")
 	timeLastRated := r.Form.Get("timeLastRated")
 	timeOfLastKnownLocation := r.Form.Get("timeOfLastKnownLocation")
+	timeOfCheckIn := r.Form.Get("timeOfCheckIn")
+	saidThereWasACover, saidThereWasACoverConvErr := strconv.ParseBool(r.Form.Get("saidThereWasACover"))
+	saidThereWasALine, saidThereWasALineConvErr := strconv.ParseBool(r.Form.Get("saidThereWasALine"))
 
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
@@ -169,7 +185,17 @@ func changeAtBarStatus(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(queryResult)
 		return
 	}
-	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation)
+	if saidThereWasACoverConvErr != nil {
+		queryResult.Error = "changeAttendanceStatusToBar function: HTTP post request saidThereWasACover parameter messed up. " + saidThereWasACoverConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	if saidThereWasALineConvErr != nil {
+		queryResult.Error = "changeAttendanceStatusToBar function: HTTP post request saidThereWasALine parameter messed up. " + saidThereWasALineConvErr.Error()
+		json.NewEncoder(w).Encode(queryResult)
+		return
+	}
+	queryResult = createOrUpdateAttendeeHelper(barID, facebookID, atBar, isMale, name, rating, status, timeLastRated, timeOfLastKnownLocation, timeOfCheckIn, saidThereWasACover, saidThereWasALine)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
@@ -532,7 +558,7 @@ func changeAttendanceStatusToPartyHelper(partyID string, facebookID string, stat
 	return queryResult
 }
 
-func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, isMale bool, name string, rating string, status string, timeLastRated string, timeOfLastKnownLocation string) QueryResult {
+func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, isMale bool, name string, rating string, status string, timeLastRated string, timeOfLastKnownLocation string, timeOfCheckIn string, saidThereWasACover bool, saidThereWasALine bool) QueryResult {
 	var queryResult = QueryResult{}
 	queryResult.Succeeded = false
 	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
@@ -565,6 +591,9 @@ func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, i
 	var statusAttribute = dynamodb.AttributeValue{}
 	var timeLastRatedAttribute = dynamodb.AttributeValue{}
 	var timeOfLastKnownLocationAttribute = dynamodb.AttributeValue{}
+	var timeOfCheckInAttribute = dynamodb.AttributeValue{}
+	var saidThereWasACoverAttribute = dynamodb.AttributeValue{}
+	var saidThereWasALineAttribute = dynamodb.AttributeValue{}
 	atBarAttribute.SetBOOL(atBar)
 	isMaleAttribute.SetBOOL(isMale)
 	nameAttribute.SetS(name)
@@ -572,6 +601,9 @@ func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, i
 	statusAttribute.SetS(status)
 	timeLastRatedAttribute.SetS(timeLastRated)
 	timeOfLastKnownLocationAttribute.SetS(timeOfLastKnownLocation)
+	timeOfCheckInAttribute.SetS(timeOfCheckIn)
+	saidThereWasACoverAttribute.SetBOOL(saidThereWasACover)
+	saidThereWasALineAttribute.SetBOOL(saidThereWasALine)
 	attendeeMap["atBar"] = &atBarAttribute
 	attendeeMap["isMale"] = &isMaleAttribute
 	attendeeMap["name"] = &nameAttribute
@@ -579,6 +611,9 @@ func createOrUpdateAttendeeHelper(barID string, facebookID string, atBar bool, i
 	attendeeMap["status"] = &statusAttribute
 	attendeeMap["timeLastRated"] = &timeLastRatedAttribute
 	attendeeMap["timeOfLastKnownLocation"] = &timeOfLastKnownLocationAttribute
+	attendeeMap["timeOfCheckIn"] = &timeOfCheckInAttribute
+	attendeeMap["saidThereWasACover"] = &saidThereWasACoverAttribute
+	attendeeMap["saidThereWasALine"] = &saidThereWasALineAttribute
 	attendee.SetM(attendeeMap)
 	expressionValuePlaceholders[":attendee"] = &attendee
 

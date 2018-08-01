@@ -251,7 +251,8 @@ func main() {
 	// curl http://localhost:5000/deleteBarKey -d "key="
 	go http.HandleFunc("/deleteBarKey", deleteBarKey)
 	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=43.070963&longitude=-89.396784&radius=200&squareMiles=30" Madison, WI
-	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=45.014322&longitude=-93.270163&radius=200&squareMiles=60" Minneapolis, MN
+	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=45.014322&longitude=-93.270163&radius=200&squareMiles=60" Minneapolis, MN 37.475278
+	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=35&attendeesMapCleanUpHourInZulu=14&latitude=37.475278&longitude=-122.151102&radius=400&squareMiles=2" Facebook HQ
 	go http.HandleFunc("/populateBarsFromGooglePlacesAPI", populateBarsFromGooglePlacesAPI)
 	// curl "http://localhost:5000/checkForBarDuplicates"
 	go http.HandleFunc("/checkForBarDuplicates", checkForBarDuplicates)
