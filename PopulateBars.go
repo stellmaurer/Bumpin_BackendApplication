@@ -27,19 +27,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-func checkForBarDuplicates(w http.ResponseWriter, r *http.Request) {
+func deleteBarDuplicates(w http.ResponseWriter, r *http.Request) {
 	var numberOfDuplicates = 0
 	barsAlreadyInOurDB := getAllBars().Bars
 	barMap := make(map[string]bool)
 	for i := 0; i < len(barsAlreadyInOurDB); i++ {
 		barExistsAlready := barMap[barsAlreadyInOurDB[i].GooglePlaceID]
 		if (barExistsAlready == true) && (barsAlreadyInOurDB[i].GooglePlaceID != "-1") {
+			deleteBarHelper(barsAlreadyInOurDB[i].BarID)
 			numberOfDuplicates++
 		} else {
 			barMap[barsAlreadyInOurDB[i].GooglePlaceID] = true
 		}
 	}
-	var message = "Number of bar duplicates = " + strconv.Itoa(numberOfDuplicates)
+	var message = "Number of bar duplicates deleted = " + strconv.Itoa(numberOfDuplicates)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(message)
@@ -75,33 +76,62 @@ func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < len(barsDetailed); i++ {
 		latitude := strconv.FormatFloat(barsDetailed[i].Geometry.Location.Lat, 'f', -1, 64)
 		longitude := strconv.FormatFloat(barsDetailed[i].Geometry.Location.Lng, 'f', -1, 64)
-		var address string
-		if barsDetailed[i].Address == "" {
-			address = "N/A"
-		} else {
-			address = barsDetailed[i].Address
+		if latitude == "0" {
+			continue
 		}
-		var name string
-		if barsDetailed[i].Name == "" {
-			name = "N/A"
-		} else {
-			name = barsDetailed[i].Name
+		if longitude == "0" {
+			continue
 		}
-		var phoneNumber string
-		if barsDetailed[i].PhoneNumber == "" {
+		address := barsDetailed[i].Address
+		if address == "" {
+			continue
+		}
+		name := barsDetailed[i].Name
+		if name == "" {
+			continue
+		}
+		phoneNumber := barsDetailed[i].PhoneNumber
+		if phoneNumber == "" {
 			phoneNumber = "N/A"
-		} else {
-			phoneNumber = barsDetailed[i].PhoneNumber
 		}
+
 		schedule := make(map[string]ScheduleForDay)
 		if len(barsDetailed[i].OpeningHours.Schedule) >= 7 {
-			schedule["Monday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[0], LastCall: lastCall}
-			schedule["Tuesday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[1], LastCall: lastCall}
-			schedule["Wednesday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[2], LastCall: lastCall}
-			schedule["Thursday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[3], LastCall: lastCall}
-			schedule["Friday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[4], LastCall: lastCall}
-			schedule["Saturday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[5], LastCall: lastCall}
-			schedule["Sunday"] = ScheduleForDay{Open: barsDetailed[i].OpeningHours.Schedule[6], LastCall: lastCall}
+			mondayHours := barsDetailed[i].OpeningHours.Schedule[0]
+			if mondayHours == "" {
+				mondayHours = "N/A"
+			}
+			tuesdayHours := barsDetailed[i].OpeningHours.Schedule[1]
+			if tuesdayHours == "" {
+				tuesdayHours = "N/A"
+			}
+			wednesdayHours := barsDetailed[i].OpeningHours.Schedule[2]
+			if wednesdayHours == "" {
+				wednesdayHours = "N/A"
+			}
+			thursdayHours := barsDetailed[i].OpeningHours.Schedule[3]
+			if thursdayHours == "" {
+				thursdayHours = "N/A"
+			}
+			fridayHours := barsDetailed[i].OpeningHours.Schedule[4]
+			if fridayHours == "" {
+				fridayHours = "N/A"
+			}
+			saturdayHours := barsDetailed[i].OpeningHours.Schedule[5]
+			if saturdayHours == "" {
+				saturdayHours = "N/A"
+			}
+			sundayHours := barsDetailed[i].OpeningHours.Schedule[6]
+			if sundayHours == "" {
+				sundayHours = "N/A"
+			}
+			schedule["Monday"] = ScheduleForDay{Open: mondayHours, LastCall: lastCall}
+			schedule["Tuesday"] = ScheduleForDay{Open: tuesdayHours, LastCall: lastCall}
+			schedule["Wednesday"] = ScheduleForDay{Open: wednesdayHours, LastCall: lastCall}
+			schedule["Thursday"] = ScheduleForDay{Open: thursdayHours, LastCall: lastCall}
+			schedule["Friday"] = ScheduleForDay{Open: fridayHours, LastCall: lastCall}
+			schedule["Saturday"] = ScheduleForDay{Open: saturdayHours, LastCall: lastCall}
+			schedule["Sunday"] = ScheduleForDay{Open: sundayHours, LastCall: lastCall}
 		} else {
 			schedule["Monday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
 			schedule["Tuesday"] = ScheduleForDay{Open: "N/A", LastCall: lastCall}
@@ -116,6 +146,9 @@ func populateBarsFromGooglePlacesAPI(w http.ResponseWriter, r *http.Request) {
 		if barExistsAlready == false {
 			barID := strconv.FormatUint(getRandomID(), 10)
 			var createBarQueryResult = createBarHelper(barKey, facebookID, isMale, nameOfCreator, address, attendeesMapCleanUpHourInZulu, barID, details, latitude, longitude, name, phoneNumber, schedule, timeZone, barsDetailed[i].PlaceID)
+			if createBarQueryResult.Succeeded == false {
+				fmt.Println(barKey, facebookID, isMale, nameOfCreator, address, attendeesMapCleanUpHourInZulu, barID, details, latitude, longitude, name, phoneNumber, schedule, timeZone, barsDetailed[i].PlaceID)
+			}
 			queryResult = convertTwoQueryResultsToOne(queryResult, createBarQueryResult)
 			mapOfBarsAlreadyInOurDB[barsDetailed[i].PlaceID] = getBar(barID).Bars[0]
 		} else {
@@ -176,13 +209,14 @@ func getBarsFromGooglePlacesAPIWithinThisRadiusAndNotInTheMap(latitudeFloat floa
 	latitude := strconv.FormatFloat(latitudeFloat, 'f', -1, 64)
 	longitude := strconv.FormatFloat(longitudeFloat, 'f', -1, 64)
 	var bars []GooglePlace = getPlaceIDsOfBarsFromGooglePlacesAPI(latitude, longitude, radius)
+
 	var barsDetailed []GooglePlaceDetailed
 
 	for i := 0; i < len(bars); i++ {
 		var barToAdd = getPlaceDetailsForPlaceID(bars[i].PlaceID)
-		barExistsAlready := mapOfBarsAlreadyAdded[barToAdd.Address+barToAdd.Name]
+		barExistsAlready := mapOfBarsAlreadyAdded[barToAdd.PlaceID]
 		if barExistsAlready == false {
-			mapOfBarsAlreadyAdded[barToAdd.Address+barToAdd.Name] = true
+			mapOfBarsAlreadyAdded[barToAdd.PlaceID] = true
 			barsDetailed = append(barsDetailed, barToAdd)
 		}
 	}

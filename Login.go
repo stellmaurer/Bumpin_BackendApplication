@@ -45,6 +45,16 @@ func createOrUpdatePerson(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queryResult)
 }
 
+func updateWhatGotPersonToDownload(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	facebookID := r.Form.Get("facebookID")
+	whatGotThemToDownload := r.Form.Get("whatGotThemToDownload")
+	queryResult := updateWhatGotPersonToDownloadHelper(facebookID, whatGotThemToDownload)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
 func getPerson(w http.ResponseWriter, r *http.Request) {
 	facebookID := r.URL.Query().Get("facebookID")
 	queryResult := getPersonHelper(facebookID)
@@ -90,6 +100,7 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	var sevenPMLocalHourInZuluAttributeValue = dynamodb.AttributeValue{}
 	var numberOfFriendsThatMightGoOutAttributeValue = dynamodb.AttributeValue{}
 	var goingOutStatusAttributeValue = dynamodb.AttributeValue{}
+	var whatGotThemToDownloadAttributeValue = dynamodb.AttributeValue{}
 	barHostForAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	facebookIDAttributeValue.SetS(facebookID)
 	invitedToAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
@@ -103,6 +114,7 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	peopleToIgnoreAttributeValue.SetM(make(map[string]*dynamodb.AttributeValue))
 	sevenPMLocalHourInZuluAttributeValue.SetN(sevenPMLocalHourInZulu)
 	numberOfFriendsThatMightGoOutAttributeValue.SetN("0")
+	whatGotThemToDownloadAttributeValue.SetS("Unknown")
 	statusMap := make(map[string]*dynamodb.AttributeValue)
 	var manuallySetAttribute = dynamodb.AttributeValue{}
 	var goingOutAttribute = dynamodb.AttributeValue{}
@@ -128,6 +140,7 @@ func createPersonHelper(facebookID string, isMale bool, name string, platform st
 	expressionValues["sevenPMLocalHourInZulu"] = &sevenPMLocalHourInZuluAttributeValue
 	expressionValues["numberOfFriendsThatMightGoOut"] = &numberOfFriendsThatMightGoOutAttributeValue
 	expressionValues["status"] = &goingOutStatusAttributeValue
+	expressionValues["whatGotThemToDownload"] = &whatGotThemToDownloadAttributeValue
 
 	var putItemInput = dynamodb.PutItemInput{}
 	putItemInput.SetConditionExpression("attribute_not_exists(#fbid)")
@@ -213,6 +226,60 @@ func updatePersonHelper(facebookID string, isMale bool, name string, platform st
 	var dynamodbCall = DynamodbCall{}
 	if err2 != nil {
 		dynamodbCall.Error = "updatePersonHelper function: UpdateItem error. " + err2.Error()
+		dynamodbCall.Succeeded = false
+		queryResult.DynamodbCalls[0] = dynamodbCall
+		queryResult.Error += dynamodbCall.Error
+		return queryResult
+	}
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult
+}
+
+func updateWhatGotPersonToDownloadHelper(facebookID string, whatGotThemToDownload string) QueryResult {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "updateWhatGotPersonToDownloadHelper function: session creation error. " + err.Error()
+		return queryResult
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+	// Finally
+	expressionAttributeNames := make(map[string]*string)
+	var whatGotThemToDownloadString = "whatGotThemToDownload"
+	expressionAttributeNames["#whatGotThemToDownload"] = &whatGotThemToDownloadString
+
+	expressionValuePlaceholders := make(map[string]*dynamodb.AttributeValue)
+	var whatGotThemToDownloadAttributeValue = dynamodb.AttributeValue{}
+	whatGotThemToDownloadAttributeValue.SetS(whatGotThemToDownload)
+	expressionValuePlaceholders[":whatGotThemToDownload"] = &whatGotThemToDownloadAttributeValue
+
+	keyMap := make(map[string]*dynamodb.AttributeValue)
+	var key = dynamodb.AttributeValue{}
+	key.SetS(facebookID)
+	keyMap["facebookID"] = &key
+
+	var updateItemInput = dynamodb.UpdateItemInput{}
+	updateItemInput.SetExpressionAttributeNames(expressionAttributeNames)
+	updateItemInput.SetExpressionAttributeValues(expressionValuePlaceholders)
+	updateItemInput.SetKey(keyMap)
+	updateItemInput.SetTableName("Person")
+	updateExpression := "SET #whatGotThemToDownload=:whatGotThemToDownload"
+	updateItemInput.UpdateExpression = &updateExpression
+
+	_, err2 := getter.DynamoDB.UpdateItem(&updateItemInput)
+	var dynamodbCall = DynamodbCall{}
+	if err2 != nil {
+		dynamodbCall.Error = "updateWhatGotPersonToDownloadHelper function: UpdateItem error. " + err2.Error()
 		dynamodbCall.Succeeded = false
 		queryResult.DynamodbCalls[0] = dynamodbCall
 		queryResult.Error += dynamodbCall.Error
