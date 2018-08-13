@@ -217,6 +217,8 @@ func main() {
 	// curl "http://localhost:5000/getPerson?facebookID=10155613117039816"
 	// curl "http://bumpin-env.us-west-2.elasticbeanstalk.com:80/getPerson?facebookID=10154326505409816"
 	go http.HandleFunc("/getPerson", getPerson)
+	// curl http://localhost:5000/updateWhatGotPersonToDownload -d "facebookID=10154326505409816&whatGotThemToDownload=I%20dont%20know"
+	go http.HandleFunc("/updateWhatGotPersonToDownload", updateWhatGotPersonToDownload)
 
 	/*
 		More tab queries
@@ -250,12 +252,13 @@ func main() {
 	go http.HandleFunc("/getClaimKey", getClaimKey)
 	// curl http://localhost:5000/deleteBarKey -d "key="
 	go http.HandleFunc("/deleteBarKey", deleteBarKey)
-	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=43.070963&longitude=-89.396784&radius=200&squareMiles=30" Madison, WI
+	// https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=AIzaSyBDGTJegyakdJ3ObWRQfecI9zH_0MyzRhM&location=30.216979,-97.750996&radius=800&type=bar
+	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=31&attendeesMapCleanUpHourInZulu=10&latitude=40.643200&longitude=-73.949834&radius=1000&squareMiles=8"
 	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=33&attendeesMapCleanUpHourInZulu=12&latitude=45.014322&longitude=-93.270163&radius=200&squareMiles=60" Minneapolis, MN 37.475278
 	// curl http://localhost:5000/populateBarsFromGooglePlacesAPI -d "timeZone=35&attendeesMapCleanUpHourInZulu=14&latitude=37.475278&longitude=-122.151102&radius=400&squareMiles=2" Facebook HQ
 	go http.HandleFunc("/populateBarsFromGooglePlacesAPI", populateBarsFromGooglePlacesAPI)
-	// curl "http://localhost:5000/checkForBarDuplicates"
-	go http.HandleFunc("/checkForBarDuplicates", checkForBarDuplicates)
+	// curl "http://localhost:5000/deleteBarDuplicates"
+	go http.HandleFunc("/deleteBarDuplicates", deleteBarDuplicates)
 	// curl "http://localhost:5000/deleteAllBarsThatWereAutoPopulated"
 	go http.HandleFunc("/deleteAllBarsThatWereAutoPopulated", deleteAllBarsThatWereAutoPopulated)
 	// curl "http://localhost:5000/deleteBarsThatArentOpenAfter1159PMOnFriday"

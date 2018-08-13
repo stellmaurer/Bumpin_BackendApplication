@@ -99,6 +99,7 @@ type PersonData struct {
 	DeviceToken                       string            `json:"deviceToken"`
 	SevenPMLocalHourInZulu            uint64            `json:"sevenPMLocalHourInZulu"`
 	NumberOfFriendsThatMightGoOut     uint64            `json:"numberOfFriendsThatMightGoOut"`
+	WhatGotThemToDownload             string            `json:"whatGotThemToDownload"`
 }
 
 // PartyData : A party from the database in json format
