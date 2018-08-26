@@ -32,6 +32,87 @@ const (
 	serverKey = "AAAAo_YT2fc:APA91bEV1ctVnAhvWzO7uOpuMBcHpwYu1LaGDgHF3KZ4GtdY1yocH90Vc_fvFlmtGDKib1vYA24ci5QUdaoozpeI_kfd9QdHwGS2L8JNDd6AZh1I-zGZ8COLEPp75c_wlAG_iFE1NbIZ"
 )
 
+func sendVersionUpdateNotificationToEveryone(w http.ResponseWriter, r *http.Request) {
+	queryResult, people := getAllPeople()
+
+	for i := 0; i < len(people); i++ {
+		var message = "A new version of Bumpin is available - update the app when possible."
+		var createAndSendNotificationToThisPersonQueryResult = createAndSendNotificationToThisPerson(people[i].FacebookID, message, "-1")
+		if createAndSendNotificationToThisPersonQueryResult.Succeeded == false {
+			queryResult = convertTwoQueryResultsToOne(queryResult, createAndSendNotificationToThisPersonQueryResult)
+		}
+	}
+
+	if queryResult.Succeeded == true {
+		queryResult.DynamodbCalls = nil
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(queryResult)
+}
+
+func getAllPeople() (QueryResult, []TinyPerson) {
+	var queryResult = QueryResult{}
+	queryResult.Succeeded = false
+	queryResult.DynamodbCalls = make([]DynamodbCall, 1)
+	type ItemGetter struct {
+		DynamoDB dynamodbiface.DynamoDBAPI
+	}
+	// Setup
+	var getter = new(ItemGetter)
+	var config = &aws.Config{Region: aws.String("us-west-2")}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		queryResult.Error = "getAllPeople function: session creation error. " + err.Error()
+		return queryResult, nil
+	}
+	var svc = dynamodb.New(sess)
+	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+
+	var people []TinyPerson
+	firstCall := true
+	var lastEvaluatedKey map[string]*dynamodb.AttributeValue
+
+	for {
+		var scanItemsInput = dynamodb.ScanInput{}
+		scanItemsInput.SetTableName("Person")
+		if firstCall == false && lastEvaluatedKey == nil {
+			break
+		} else {
+			scanItemsInput.SetExclusiveStartKey(lastEvaluatedKey)
+		}
+
+		scanItemsInput.SetTableName("Person")
+		scanItemsOutput, err2 := getter.DynamoDB.Scan(&scanItemsInput)
+
+		var dynamodbCall = DynamodbCall{}
+		if err2 != nil {
+			dynamodbCall.Error = "getAllPeople function: Scan error. " + err2.Error()
+			dynamodbCall.Succeeded = false
+			queryResult.DynamodbCalls[0] = dynamodbCall
+			queryResult.Error += dynamodbCall.Error
+			return queryResult, nil
+		}
+		dynamodbCall.Succeeded = true
+		queryResult.DynamodbCalls[0] = dynamodbCall
+
+		data := scanItemsOutput.Items
+		peopleOnThisPage := make([]TinyPerson, len(data))
+		jsonErr := dynamodbattribute.UnmarshalListOfMaps(data, &peopleOnThisPage)
+		if jsonErr != nil {
+			queryResult.Error = "getAllPeople function: UnmarshalListOfMaps error. " + jsonErr.Error()
+			return queryResult, nil
+		}
+		people = append(people, peopleOnThisPage...)
+		lastEvaluatedKey = scanItemsOutput.LastEvaluatedKey
+		firstCall = false
+	}
+
+	queryResult.DynamodbCalls = nil
+	queryResult.Succeeded = true
+	return queryResult, people
+}
+
 func sendGoingOutStatusNotificationToPeopleWhoHaveFriendsGoingOutAndHaveALocalTimeEqualToSevenPM(w http.ResponseWriter, r *http.Request) {
 	queryResult, people := findAllPeopleWhereTheirLocalTimeIsSevenPM()
 
@@ -700,7 +781,9 @@ func testSendiOSPushNotification(w http.ResponseWriter, r *http.Request) {
 }
 
 func testSendAndroidPushNotification(w http.ResponseWriter, r *http.Request) {
-	queryResult := sendAndroidPushNotification("d8ueLVJ2Et0:APA91bF6RtEWZx0lnm63Q74cUTAkZbhSxreX8laylRvUh8qB4F8mSq7Gu2mmkflBOuur6JPoBKH9LnUvplVwtdtFi0fm7N3DNKVFBJV5geJsoeKZL1qHoDtmnhf0MmxopMw4j0bWsjfr455T5MiWb26ue-LBZmG5Mg", "This is a message!", "000111")
+	r.ParseForm()
+	deviceToken := r.Form.Get("deviceToken")
+	queryResult := sendAndroidPushNotification(deviceToken, "This is a message!", "000111")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(queryResult)
@@ -743,6 +826,8 @@ func sendiOSPushNotification(deviceToken string, outstandingNotifications uint64
 	if status.Reason != "" {
 		client.Development()
 		status2, err3 := client.Push(notification)
+		fmt.Println(status2)
+		fmt.Println(err3)
 		if err3 != nil {
 			queryResult.Error = "Development push notification failed: " + err3.Error()
 			return queryResult

@@ -23,13 +23,15 @@ func main() {
 	/*
 		Push Notification Testing
 	*/
+	// curl http://localhost:5000/sendVersionUpdateNotificationToEveryone
+	go http.HandleFunc("/sendVersionUpdateNotificationToEveryone", sendVersionUpdateNotificationToEveryone)
 	// curl http://localhost:5000/testiOSPushNotification
 	// go http.HandleFunc("/testiOSPushNotification", testiOSPushNotification)
 	// curl http://localhost:5000/testAndroidPushNotification
 	//go http.HandleFunc("/testAndroidPushNotification", testAndroidPushNotification)
-	// curl http://localhost:5000/testSendiOSPushNotification -d "deviceToken=fd21a7d4f1da491ab1b8e817fbd5fe602264ae9a5f9ce27780c8104c132bd891"
+	// curl http://localhost:5000/testSendiOSPushNotification -d "deviceToken=6c5a4afb083de2a474b71fe1ec1f9b8e2b891a49c5fdbc3ee7a10acf4d20af5c"
 	go http.HandleFunc("/testSendiOSPushNotification", testSendiOSPushNotification)
-	// curl http://localhost:5000/testSendAndroidPushNotification
+	// curl http://localhost:5000/testSendAndroidPushNotification -d "deviceToken=ekYMCK71A_g:APA91bHx9AcOTpqk285eqbRXJEEAY1efueU1FOLBZTTBfAks6XWguxJdTbyHf0fzNjTXbSuY-DcUJALgEfvocFSZYFJIcPqE-0zRByJd7Yuk-2eV-NGoj7Led6r-P5sdQ0pJcDwhkgST"
 	go http.HandleFunc("/testSendAndroidPushNotification", testSendAndroidPushNotification)
 	// curl http://localhost:5000/testCreateNotification -d "receiverFacebookID=10154326505409816&message=Hello&partyOrBarID=1"
 	// go http.HandleFunc("/testCreateNotification", testCreateNotification)
